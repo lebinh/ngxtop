@@ -1,6 +1,6 @@
-#`ngxtop` - know what happen to your nginx server in realtime.
+#`ngxtop` - know what is happenning to your nginx server in real-time.
 
-**ngxtop** parse your nginx access log and output useful, `top` like, metrics of your nginx server.
+**ngxtop** parses your nginx access log and outputs useful, `top`-like, metrics of your nginx server.
 
 
 ## Usage
@@ -79,7 +79,7 @@ top remote_addr
 | 125.26.213.203  |      15 |
 ```
 
-###List 4xx or 5xx reponses together with http referer
+###List 4xx or 5xx reponses together with HTTP referer
 
 ```
 $ ./ngxtop.py -i 'status >= 400' print request status http_referer
