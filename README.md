@@ -1,4 +1,4 @@
-#`ngxtop` - know what is happenning to your nginx server in real-time.
+#`ngxtop` - know what is happening to your nginx server in real-time.
 
 **ngxtop** parses your nginx access log and outputs useful, `top`-like, metrics of your nginx server.
 
