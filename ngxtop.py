@@ -150,7 +150,10 @@ def extract_nginx_conf(path, log_file=None, log_format=None):
         log_format = log_format.replace("'", "")
 
     access_log_directive = re.search(r'access_log\s+(\S+)\s+%s' % log_format_name, conf)
-    log_file = access_log_directive.group(1) if access_log_directive else 'logs/access.log'
+    # Use the log file from config only when not supplied with --access-log option,
+    # else it is overwritten everytime.
+    if not log_file:
+        log_file = access_log_directive.group(1) if access_log_directive else 'logs/access.log'
 
     return log_file, log_format
 
