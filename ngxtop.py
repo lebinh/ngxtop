@@ -52,7 +52,7 @@ Examples:
     $ ngxtop -i 'status >= 400' print request status http_referer
 
     Average body bytes sent of 200 responses of requested path begin with 'foo':
-    $ ngxtop avg bytes_sent --filter 'status == 200 and requested_path.startswith("foo")'
+    $ ngxtop avg bytes_sent --filter 'status == 200 and request_path.startswith("foo")'
 """
 from contextlib import closing
 import logging
