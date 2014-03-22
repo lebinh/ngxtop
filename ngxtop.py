@@ -425,7 +425,7 @@ def main(arguments):
     logging.info('Processed %d lines in %.3f seconds, %.2f lines/sec.', total, duration, total / duration)
 
 
-if __name__ == '__main__':
+def entry_point():
     args = docopt(__doc__, version='xstat 0.1')
 
     log_level = logging.WARNING
@@ -440,3 +440,7 @@ if __name__ == '__main__':
         main(args)
     except KeyboardInterrupt:
         sys.exit(0)
+
+
+if __name__ == '__main__':
+    entry_point()
