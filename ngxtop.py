@@ -135,8 +135,16 @@ def extract_nginx_conf(path, log_file=None, log_format=None):
         - for each log file search the correct log_format
         - if more than one log file, offer user to choose which one
     """
+    
+    # Bugfix: The log_format from commented out line was used.
+    # Strip all commented out lines before processing the conf file.
+    conf = []
     with open(path) as conf_file:
-        conf = conf_file.read()
+        for line in conf_file:
+                if line.lstrip().startswith("#"):
+                        continue
+                conf.append(line)
+        conf = "\n".join(conf)
 
     log_format_directive = re.search(r'log_format\s+(\S+)\s+(.*?);', conf, flags=re.DOTALL)
     log_format_name = log_format_directive.group(1) if log_format_directive else 'combined'
