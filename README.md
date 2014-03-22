@@ -79,7 +79,7 @@ top remote_addr
 | 125.26.213.203  |      15 |
 ```
 
-###List 4xx or 5xx reponses together with HTTP referer
+###List 4xx or 5xx responses together with HTTP referer
 
 ```
 $ ./ngxtop.py -i 'status >= 400' print request status http_referer
