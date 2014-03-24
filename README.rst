@@ -108,3 +108,4 @@ List 4xx or 5xx responses together with HTTP referer
     | request   |   status | http_referer   |
     |-----------+----------+----------------|
     | -         |      400 | -              |
+
