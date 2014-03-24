@@ -54,6 +54,7 @@ Examples:
     Average body bytes sent of 200 responses of requested path begin with 'foo':
     $ ngxtop avg bytes_sent --filter 'status == 200 and request_path.startswith("foo")'
 """
+from __future__ import print_function
 from contextlib import closing
 import logging
 import os
@@ -61,9 +62,13 @@ import re
 import sqlite3
 import subprocess
 import threading
-import urlparse
 import time
 import sys
+
+try:
+    import urlparse
+except ImportError:
+    import urllib.parse as urlparse
 
 from docopt import docopt
 import tabulate
@@ -117,11 +122,12 @@ def get_nginx_conf_path():
     proc = subprocess.Popen(['nginx', '-V'], stderr=subprocess.PIPE)
     stdout, stderr = proc.communicate()
 
-    conf_path_match = re.search(r'--conf-path=(\S*)', stderr)
+    version_output = stderr.decode('utf-8')
+    conf_path_match = re.search(r'--conf-path=(\S*)', version_output)
     if conf_path_match is not None:
         return conf_path_match.group(1)
 
-    prefix_match = re.search(r'--prefix=(\S*)', stderr)
+    prefix_match = re.search(r'--prefix=(\S*)', version_output)
     if prefix_match is not None:
         return prefix_match.group(1) + '/conf/nginx.conf'
     return '/etc/nginx/nginx.conf'
@@ -232,7 +238,7 @@ def parse_request_path(record):
 
 
 def parse_status_type(record):
-    return record['status'] / 100 if 'status' in record else None
+    return record['status'] // 100 if 'status' in record else None
 
 
 def to_int(value):
@@ -326,7 +332,7 @@ def process_log(lines, pattern, processor, arguments):
         records = (r for r in records if eval(filter_exp, {}, r))
 
     total = processor.process(records)
-    print processor.report()
+    print(processor.report())
     return total
 
 
@@ -386,7 +392,7 @@ def build_reporter(processor, arguments):
             time.sleep(interval)
             output = processor.report()
             os.system('cls' if os.name == 'nt' else 'clear')
-            print output
+            print(output)
 
     thread = threading.Thread(target=report)
     thread.daemon = True
@@ -407,10 +413,10 @@ def process(arguments):
     logging.info('log_format: %s', log_format)
 
     if arguments['info']:
-        print 'configuration file:\n ', config
-        print 'access log file:\n ', access_log
-        print 'access log format:\n ', log_format
-        print 'available variables:\n ', ', '.join(sorted(extract_variables(log_format)))
+        print('configuration file:\n ', config)
+        print('access log file:\n ', access_log)
+        print('access log format:\n ', log_format)
+        print('available variables:\n ', ', '.join(sorted(extract_variables(log_format))))
         return
 
     begin = time.time()
