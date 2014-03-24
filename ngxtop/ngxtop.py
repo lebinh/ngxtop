@@ -159,7 +159,7 @@ def extract_nginx_conf(path, log_file=None, log_format=None):
     # Use the log file from config only when not supplied with --access-log option,
     # else it is overwritten everytime.
     if not log_file:
-        log_file = access_log_directive.group(1) if access_log_directive else 'logs/access.log'
+        log_file = access_log_directive.group(1) if access_log_directive else '/var/log/nginx/access.log'
 
     return log_file, log_format
 
@@ -176,6 +176,8 @@ def build_pattern(log_format):
 
 
 def extract_variables(log_format):
+    if log_format == 'combined':
+        log_format = LOG_FORMAT_COMBINED
     for match in re.findall(REGEX_LOG_FORMAT_VARIABLE, log_format):
         yield match
 
