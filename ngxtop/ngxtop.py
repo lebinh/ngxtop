@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 """ngxtop - ad-hoc query for nginx access log.
 
 Usage:

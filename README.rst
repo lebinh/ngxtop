@@ -5,6 +5,15 @@
 **ngxtop** parses your nginx access log and outputs useful, ``top``-like, metrics of your nginx server.
 So you can tell what is happening with your server in real-time.
 
+Installation
+------------
+
+::
+
+    pip install ngxtop
+
+
+Note: ``ngxtop`` is primarily developed and tested with python2 but also supports python3.
 
 Usage
 -----
