@@ -9,6 +9,7 @@ Usage:
     ngxtop [options]
     ngxtop [options] (print|top|avg|sum) <var>
     ngxtop info
+    ngxtop [options] query <query> ...
 
 Options:
     -l <file>, --access-log <file>  access log file to parse.
@@ -28,6 +29,11 @@ Options:
     -d, --debug  print every line and parsed record
     -h, --help  print this help message.
     --version  print version information.
+    
+     Advanced / experimental options:
+    -c <file>, --config <file> allow ngxtop to parse nginx config file for log format and location.
+    -i <filter-expression>, --filter <filter-expression> filter in, records satisfied given expression are processed.
+    -p <filter-expression>, --pre-filter <filter-expression> in-filter expression to check in pre-parsing phase.
 ```
 
 ## Sample output
