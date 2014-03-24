@@ -393,7 +393,7 @@ def build_reporter(processor, arguments):
     return thread
 
 
-def main(arguments):
+def process(arguments):
     access_log = arguments['--access-log']
     log_format = arguments['--log-format']
     if access_log is None or log_format is None:
@@ -425,7 +425,7 @@ def main(arguments):
     logging.info('Processed %d lines in %.3f seconds, %.2f lines/sec.', total, duration, total / duration)
 
 
-if __name__ == '__main__':
+def main():
     args = docopt(__doc__, version='xstat 0.1')
 
     log_level = logging.WARNING
@@ -437,6 +437,10 @@ if __name__ == '__main__':
     logging.debug('arguments:\n%s', args)
 
     try:
-        main(args)
+        process(args)
     except KeyboardInterrupt:
         sys.exit(0)
+
+
+if __name__ == '__main__':
+    main()
