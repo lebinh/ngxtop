@@ -30,6 +30,7 @@ Options:
     -i <filter-expression>, --filter <filter-expression>  filter in, records satisfied given expression are processed.
     -p <filter-expression>, --pre-filter <filter-expression> in-filter expression to check in pre-parsing phase.
     -s, --from-stdin  read lines from stdin.
+    -b, --db-dump  dump database to disk
 
 Examples:
     All examples read nginx config file for access log location and format.
@@ -62,6 +63,7 @@ import sqlite3
 import subprocess
 import threading
 import time
+from datetime import date
 import sys
 
 try:
@@ -109,6 +111,12 @@ DEFAULT_QUERIES = [
 ]
 
 DEFAULT_FIELDS = set(['status_type', 'bytes_sent'])
+
+
+# =============================
+# Global variable for dbdump
+# =============================
+processor = None
 
 
 # ====================
@@ -403,6 +411,7 @@ def build_reporter(processor, arguments):
 
 
 def process(arguments):
+    global processor
     access_log = arguments['--access-log']
     log_format = arguments['--log-format']
     if access_log is None or log_format is None:
@@ -437,6 +446,21 @@ def process(arguments):
     logging.info('Processed %d lines in %.3f seconds, %.2f lines/sec.', total, duration, total / duration)
 
 
+# ================
+# Database dump
+# ================
+def dbdump():
+    """
+    *experimental* if requested, database is dumped to a file when script is interrupted from keyboard
+    Filename is composed from current date and process id
+    """
+    dbfile = "{}_{}.sql".format(date.today().strftime("%Y%m%d"), os.getpid())
+    logging.info("Database dump: %s", dbfile)
+    with open(dbfile, 'w') as f:
+        for line in processor.conn.iterdump():
+            f.write('%s\n' % line)
+
+
 def main():
     args = docopt(__doc__, version='xstat 0.1')
 
@@ -451,6 +475,8 @@ def main():
     try:
         process(args)
     except KeyboardInterrupt:
+        if args['--db-dump']:
+            dbdump()
         sys.exit(0)
 
 

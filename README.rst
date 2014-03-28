@@ -53,6 +53,7 @@ Usage
         -i <filter-expression>, --filter <filter-expression>  filter in, records satisfied given expression are processed.
         -p <filter-expression>, --pre-filter <filter-expression> in-filter expression to check in pre-parsing phase.
         -s, --from-stdin  read lines from stdin.
+        -b, --db-dump  dump database to disk when finished
 
 Samples
 -------
