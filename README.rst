@@ -1,9 +1,12 @@
-===================================================
-``ngxtop`` - **real-time** metrics for nginx server
-===================================================
+================================================================
+``ngxtop`` - **real-time** metrics for nginx server (and others)
+================================================================
 
 **ngxtop** parses your nginx access log and outputs useful, ``top``-like, metrics of your nginx server.
 So you can tell what is happening with your server in real-time.
+
+Can be used also with Apache log files (experimental). In this case, if not log format is specified, 'combined' will be
+used. If the script doesn't detect redirections properly you can force it by using the '-s' option.
 
 Installation
 ------------
@@ -24,6 +27,7 @@ Usage
         ngxtop [options]
         ngxtop [options] (print|top|avg|sum) <var>
         ngxtop info
+        tail -f /var/log/apache2/access.log | ngxtop [-s]
 
     Options:
         -l <file>, --access-log <file>  access log file to parse.
@@ -43,6 +47,12 @@ Usage
         -d, --debug  print every line and parsed record
         -h, --help  print this help message.
         --version  print version information.
+
+        Advanced / experimental options:
+        -c <file>, --config <file>  allow ngxtop to parse nginx config file for log format and location.
+        -i <filter-expression>, --filter <filter-expression>  filter in, records satisfied given expression are processed.
+        -p <filter-expression>, --pre-filter <filter-expression> in-filter expression to check in pre-parsing phase.
+        -s, --from-stdin  read lines from stdin.
 
 Samples
 -------

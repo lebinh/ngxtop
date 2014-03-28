@@ -29,6 +29,7 @@ Options:
     -c <file>, --config <file>  allow ngxtop to parse nginx config file for log format and location.
     -i <filter-expression>, --filter <filter-expression>  filter in, records satisfied given expression are processed.
     -p <filter-expression>, --pre-filter <filter-expression> in-filter expression to check in pre-parsing phase.
+    -s, --from-stdin  read lines from stdin.
 
 Examples:
     All examples read nginx config file for access log location and format.
@@ -377,6 +378,8 @@ def build_source(access_log, arguments):
     # constructing log source
     if arguments['--no-follow']:
         lines = open(access_log)
+    elif (arguments['--from-stdin'] or not sys.stdin.isatty()):
+        lines = sys.stdin
     else:
         lines = follow(access_log)
     return lines
@@ -403,10 +406,13 @@ def process(arguments):
     access_log = arguments['--access-log']
     log_format = arguments['--log-format']
     if access_log is None or log_format is None:
-        config = arguments['--config']
-        if config is None:
-            config = get_nginx_conf_path()
-        access_log, log_format = extract_nginx_conf(config, access_log)
+        if not (arguments['--from-stdin'] or sys.stdin.isatty()):
+            config = arguments['--config']
+            if config is None:
+                config = get_nginx_conf_path()
+            access_log, log_format = extract_nginx_conf(config, access_log)
+        else:
+            log_format = 'combined'
     else:
         config = None
     logging.info('access_log: %s', access_log)
