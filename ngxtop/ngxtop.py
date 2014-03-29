@@ -53,15 +53,16 @@ Examples:
     $ ngxtop avg bytes_sent --filter 'status == 200 and request_path.startswith("foo")'
 """
 from __future__ import print_function
+import atexit
 from contextlib import closing
+import curses
 import logging
-import os
 import re
 import sqlite3
 import subprocess
-import threading
 import time
 import sys
+import signal
 
 try:
     import urlparse
@@ -271,7 +272,7 @@ class SQLProcessor(object):
         self.index_fields = index_fields if index_fields is not None else []
         self.column_list = ','.join(fields)
         self.holder_list = ','.join(':%s' % var for var in fields)
-        self.conn = sqlite3.connect(':memory:', check_same_thread=False)
+        self.conn = sqlite3.connect(':memory:')
         self.init_db()
 
     def process(self, records):
@@ -280,7 +281,6 @@ class SQLProcessor(object):
         with closing(self.conn.cursor()) as cursor:
             for r in records:
                 cursor.execute(insert, r)
-        return self.count()
 
     def report(self):
         if not self.begin:
@@ -331,9 +331,8 @@ def process_log(lines, pattern, processor, arguments):
     if filter_exp:
         records = (r for r in records if eval(filter_exp, {}, r))
 
-    total = processor.process(records)
-    print(processor.report())
-    return total
+    processor.process(records)
+    print(processor.report())  # this will only run when start in --no-follow mode
 
 
 def build_processor(arguments):
@@ -382,21 +381,25 @@ def build_source(access_log, arguments):
     return lines
 
 
-def build_reporter(processor, arguments):
+def setup_reporter(processor, arguments):
     if arguments['--no-follow']:
-        return None
+        return
 
-    def report(interval=float(arguments['--interval'])):
-        os.system('cls' if os.name == 'nt' else 'clear')
-        while True:
-            time.sleep(interval)
-            output = processor.report()
-            os.system('cls' if os.name == 'nt' else 'clear')
-            print(output)
+    scr = curses.initscr()
+    atexit.register(curses.endwin)
 
-    thread = threading.Thread(target=report)
-    thread.daemon = True
-    return thread
+    def print_report(sig, frame):
+        output = processor.report()
+        scr.erase()
+        try:
+            scr.addstr(output)
+        except curses.error:
+            pass
+        scr.refresh()
+
+    signal.signal(signal.SIGALRM, print_report)
+    interval = float(arguments['--interval'])
+    signal.setitimer(signal.ITIMER_REAL, 0.1, interval)
 
 
 def process(arguments):
@@ -419,16 +422,11 @@ def process(arguments):
         print('available variables:\n ', ', '.join(sorted(extract_variables(log_format))))
         return
 
-    begin = time.time()
     source = build_source(access_log, arguments)
     pattern = build_pattern(log_format)
     processor = build_processor(arguments)
-    reporter = build_reporter(processor, arguments)
-    if reporter is not None:
-        reporter.start()
-    total = process_log(source, pattern, processor, arguments)
-    duration = time.time() - begin
-    logging.info('Processed %d lines in %.3f seconds, %.2f lines/sec.', total, duration, total / duration)
+    setup_reporter(processor, arguments)
+    process_log(source, pattern, processor, arguments)
 
 
 def main():
