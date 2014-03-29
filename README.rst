@@ -52,7 +52,7 @@ Default output
 
 ::
 
-    $ ./ngxtop.py
+    $ ngxtop
     running for 411 seconds, 64332 records processed: 156.60 req/sec
 
     Summary:
@@ -79,7 +79,7 @@ View top source IPs of clients
 
 ::
 
-    $ ./ngxtop.py top remote_addr
+    $ ngxtop top remote_addr
     running for 20 seconds, 3215 records processed: 159.62 req/sec
 
     top remote_addr
@@ -101,7 +101,7 @@ List 4xx or 5xx responses together with HTTP referer
 
 ::
 
-    $ ./ngxtop.py -i 'status >= 400' print request status http_referer
+    $ ngxtop -i 'status >= 400' print request status http_referer
     running for 2 seconds, 28 records processed: 13.95 req/sec
 
     request, status, http_referer:
