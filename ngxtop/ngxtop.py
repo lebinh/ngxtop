@@ -29,6 +29,8 @@ Options:
     -c <file>, --config <file>  allow ngxtop to parse nginx config file for log format and location.
     -i <filter-expression>, --filter <filter-expression>  filter in, records satisfied given expression are processed.
     -p <filter-expression>, --pre-filter <filter-expression> in-filter expression to check in pre-parsing phase.
+    -s, --from-stdin  read lines from stdin.
+    -b, --db-dump  dump database to disk
 
 Examples:
     All examples read nginx config file for access log location and format.
@@ -51,6 +53,14 @@ Examples:
 
     Average body bytes sent of 200 responses of requested path begin with 'foo':
     $ ngxtop avg bytes_sent --filter 'status == 200 and request_path.startswith("foo")'
+
+    Analyze output from remote machine using 'common' log format
+    $ ssh remote_machine tail -f /var/log/apache2/access.log | ngxtop -f common
+
+Available variables for filters:
+    remote_addr, remote_user, time_local, request, status, body_bytes_sent, http_referer, http_user_agent
+    (if you use 'common' log format, maybe you have http_x_forwarded_for instead of http_user_agent)
+
 """
 from __future__ import print_function
 import atexit
@@ -61,6 +71,7 @@ import re
 import sqlite3
 import subprocess
 import time
+from datetime import date
 import sys
 import signal
 
@@ -78,6 +89,9 @@ REGEX_LOG_FORMAT_VARIABLE = r'\$([a-z0-9\_]+)'
 LOG_FORMAT_COMBINED = '$remote_addr - $remote_user [$time_local] ' \
                       '"$request" $status $body_bytes_sent ' \
                       '"$http_referer" "$http_user_agent"'
+LOG_FORMAT_COMMON   = '$remote_addr - $remote_user [$time_local] ' \
+                      '"$request" $status $body_bytes_sent ' \
+                      '"$http_x_forwarded_for"'
 
 DEFAULT_QUERIES = [
     ('Summary:',
@@ -109,6 +123,12 @@ DEFAULT_QUERIES = [
 ]
 
 DEFAULT_FIELDS = set(['status_type', 'bytes_sent'])
+
+
+# =============================
+# Global variable for dbdump
+# =============================
+processor = None
 
 
 # ====================
@@ -169,6 +189,8 @@ def build_pattern(log_format):
     """
     if log_format == 'combined':
         return build_pattern(LOG_FORMAT_COMBINED)
+    elif log_format == 'common':
+        return build_pattern(LOG_FORMAT_COMMON)
     pattern = re.sub(REGEX_SPECIAL_CHARS, r'\\\1', log_format)
     pattern = re.sub(REGEX_LOG_FORMAT_VARIABLE, '(?P<\\1>.*)', pattern)
     return re.compile(pattern)
@@ -177,6 +199,8 @@ def build_pattern(log_format):
 def extract_variables(log_format):
     if log_format == 'combined':
         log_format = LOG_FORMAT_COMBINED
+    elif log_format == 'common':
+        log_format = LOG_FORMAT_COMMON
     for match in re.findall(REGEX_LOG_FORMAT_VARIABLE, log_format):
         yield match
 
@@ -374,7 +398,9 @@ def build_processor(arguments):
 
 def build_source(access_log, arguments):
     # constructing log source
-    if arguments['--no-follow']:
+    if (access_log == 'stdin'):
+        lines = sys.stdin
+    elif arguments['--no-follow']:
         lines = open(access_log)
     else:
         lines = follow(access_log)
@@ -403,15 +429,24 @@ def setup_reporter(processor, arguments):
 
 
 def process(arguments):
+    global processor
     access_log = arguments['--access-log']
     log_format = arguments['--log-format']
-    if access_log is None or log_format is None:
-        config = arguments['--config']
-        if config is None:
-            config = get_nginx_conf_path()
-        access_log, log_format = extract_nginx_conf(config, access_log)
+    if not access_log and (arguments['--from-stdin'] or not sys.stdin.isatty()):
+        access_log = 'stdin'
     else:
-        config = None
+        if access_log is None or log_format is None:
+            config = arguments['--config']
+            if config is None:
+                config = get_nginx_conf_path()
+            access_log, log_format = extract_nginx_conf(config, access_log)
+        else:
+            config = None
+
+    # Maybe nginx is not installed, so we'll fix a default log format if not defined here
+    if log_format is None:
+        log_format = 'combined'
+
     logging.info('access_log: %s', access_log)
     logging.info('log_format: %s', log_format)
 
@@ -429,6 +464,21 @@ def process(arguments):
     process_log(source, pattern, processor, arguments)
 
 
+# ================
+# Database dump
+# ================
+def dbdump():
+    """
+    *experimental* if requested, database is dumped to a file when script is interrupted from keyboard
+    Filename is composed from current date and process id
+    """
+    dbfile = "{}_{}.sql".format(date.today().strftime("%Y%m%d"), os.getpid())
+    logging.info("Database dump: %s", dbfile)
+    with open(dbfile, 'w') as f:
+        for line in processor.conn.iterdump():
+            f.write('%s\n' % line)
+
+
 def main():
     args = docopt(__doc__, version='xstat 0.1')
 
@@ -443,6 +493,8 @@ def main():
     try:
         process(args)
     except KeyboardInterrupt:
+        if args['--db-dump']:
+            dbdump()
         sys.exit(0)
 
 
