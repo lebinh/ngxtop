@@ -53,6 +53,14 @@ Examples:
 
     Average body bytes sent of 200 responses of requested path begin with 'foo':
     $ ngxtop avg bytes_sent --filter 'status == 200 and request_path.startswith("foo")'
+
+    Analyze output from remote machine using 'common' log format
+    $ ssh remote_machine tail -f /var/log/apache2/access.log | ngxtop -f common
+
+Available variables for filters:
+    remote_addr, remote_user, time_local, request, status, body_bytes_sent, http_referer, http_user_agent
+    (if you use 'common' log format, maybe you have http_x_forwarded_for instead of http_user_agent)
+
 """
 from __future__ import print_function
 from contextlib import closing
@@ -80,6 +88,9 @@ REGEX_LOG_FORMAT_VARIABLE = r'\$([a-z0-9\_]+)'
 LOG_FORMAT_COMBINED = '$remote_addr - $remote_user [$time_local] ' \
                       '"$request" $status $body_bytes_sent ' \
                       '"$http_referer" "$http_user_agent"'
+LOG_FORMAT_COMMON   = '$remote_addr - $remote_user [$time_local] ' \
+                      '"$request" $status $body_bytes_sent ' \
+                      '"$http_x_forwarded_for"'
 
 DEFAULT_QUERIES = [
     ('Summary:',
@@ -177,6 +188,8 @@ def build_pattern(log_format):
     """
     if log_format == 'combined':
         return build_pattern(LOG_FORMAT_COMBINED)
+    elif log_format == 'common':
+        return build_pattern(LOG_FORMAT_COMMON)
     pattern = re.sub(REGEX_SPECIAL_CHARS, r'\\\1', log_format)
     pattern = re.sub(REGEX_LOG_FORMAT_VARIABLE, '(?P<\\1>.*)', pattern)
     return re.compile(pattern)
@@ -185,6 +198,8 @@ def build_pattern(log_format):
 def extract_variables(log_format):
     if log_format == 'combined':
         log_format = LOG_FORMAT_COMBINED
+    elif log_format == 'common':
+        log_format = LOG_FORMAT_COMMON
     for match in re.findall(REGEX_LOG_FORMAT_VARIABLE, log_format):
         yield match
 
@@ -384,10 +399,10 @@ def build_processor(arguments):
 
 def build_source(access_log, arguments):
     # constructing log source
-    if arguments['--no-follow']:
-        lines = open(access_log)
-    elif (arguments['--from-stdin'] or not sys.stdin.isatty()):
+    if (access_log == 'stdin'):
         lines = sys.stdin
+    elif arguments['--no-follow']:
+        lines = open(access_log)
     else:
         lines = follow(access_log)
     return lines
@@ -414,16 +429,21 @@ def process(arguments):
     global processor
     access_log = arguments['--access-log']
     log_format = arguments['--log-format']
-    if access_log is None or log_format is None:
-        if not (arguments['--from-stdin'] or sys.stdin.isatty()):
+    if not access_log and (arguments['--from-stdin'] or not sys.stdin.isatty()):
+        access_log = 'stdin'
+    else:
+        if access_log is None or log_format is None:
             config = arguments['--config']
             if config is None:
                 config = get_nginx_conf_path()
             access_log, log_format = extract_nginx_conf(config, access_log)
         else:
-            log_format = 'combined'
-    else:
-        config = None
+            config = None
+
+    # Maybe nginx is not installed, so we'll fix a default log format if not defined here
+    if log_format is None:
+        log_format = 'combined'
+
     logging.info('access_log: %s', access_log)
     logging.info('log_format: %s', log_format)
 
