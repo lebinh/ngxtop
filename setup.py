@@ -27,7 +27,7 @@ setup(
     keywords='cli monitoring nginx system',
 
     packages=['ngxtop'],
-    install_requires=['docopt', 'tabulate'],
+    install_requires=['docopt', 'tabulate', 'pyparsing'],
 
     entry_points={
         'console_scripts': [

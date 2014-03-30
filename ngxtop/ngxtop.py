@@ -8,7 +8,7 @@ Usage:
 
 Options:
     -l <file>, --access-log <file>  access log file to parse.
-    -f <format>, --log-format <format>  log format as specify in log_format directive.
+    -f <format>, --log-format <format>  log format as specify in log_format directive. [default: combined]
     --no-follow  ngxtop default behavior is to ignore current lines in log
                      and only watch for new lines as they are written to the access log.
                      Use this flag to tell ngxtop to process the current content of the access log instead.
@@ -57,9 +57,8 @@ import atexit
 from contextlib import closing
 import curses
 import logging
-import re
+import os
 import sqlite3
-import subprocess
 import time
 import sys
 import signal
@@ -72,12 +71,9 @@ except ImportError:
 from docopt import docopt
 import tabulate
 
+from config_parser import detect_log_config, detect_config_path, extract_variables, build_pattern
+from utils import error_exit
 
-REGEX_SPECIAL_CHARS = r'([\.\*\+\?\|\(\)\{\}\[\]])'
-REGEX_LOG_FORMAT_VARIABLE = r'\$([a-z0-9\_]+)'
-LOG_FORMAT_COMBINED = '$remote_addr - $remote_user [$time_local] ' \
-                      '"$request" $status $body_bytes_sent ' \
-                      '"$http_referer" "$http_user_agent"'
 
 DEFAULT_QUERIES = [
     ('Summary:',
@@ -111,76 +107,6 @@ DEFAULT_QUERIES = [
 DEFAULT_FIELDS = set(['status_type', 'bytes_sent'])
 
 
-# ====================
-# Nginx utilities
-# ====================
-def get_nginx_conf_path():
-    """
-    Get nginx conf path based on `nginx -V` output
-    """
-    proc = subprocess.Popen(['nginx', '-V'], stderr=subprocess.PIPE)
-    stdout, stderr = proc.communicate()
-
-    version_output = stderr.decode('utf-8')
-    conf_path_match = re.search(r'--conf-path=(\S*)', version_output)
-    if conf_path_match is not None:
-        return conf_path_match.group(1)
-
-    prefix_match = re.search(r'--prefix=(\S*)', version_output)
-    if prefix_match is not None:
-        return prefix_match.group(1) + '/conf/nginx.conf'
-    return '/etc/nginx/nginx.conf'
-
-
-def extract_nginx_conf(path, log_file=None, log_format=None):
-    """
-    *experimental* read nginx conf file to extract access log file location and format.
-    TODO: rewrite this method to:
-        - match all access_log directive to get all possible log files
-        - for each log file search the correct log_format
-        - if more than one log file, offer user to choose which one
-    """
-    with open(path) as conf_file:
-        conf = conf_file.read()
-
-    log_format_directive = re.search(r'log_format\s+(\S+)\s+(.*?);', conf, flags=re.DOTALL)
-    log_format_name = log_format_directive.group(1) if log_format_directive else 'combined'
-    log_format = log_format_directive.group(2) if log_format_directive else 'combined'
-
-    # take care of log format in multiple line
-    # only most common case, which encapsulate log format in single quote is handled
-    if '\n' in log_format:
-        log_format = ''.join(line.strip() for line in log_format.split('\n'))
-    if log_format.startswith("'"):
-        log_format = log_format.replace("'", "")
-
-    access_log_directive = re.search(r'access_log\s+(\S+)\s+%s' % log_format_name, conf)
-    # Use the log file from config only when not supplied with --access-log option,
-    # else it is overwritten everytime.
-    if not log_file:
-        log_file = access_log_directive.group(1) if access_log_directive else '/var/log/nginx/access.log'
-
-    return log_file, log_format
-
-
-def build_pattern(log_format):
-    """
-    Take an nginx's log format string and return the required regexp pattern to parse the access log
-    """
-    if log_format == 'combined':
-        return build_pattern(LOG_FORMAT_COMBINED)
-    pattern = re.sub(REGEX_SPECIAL_CHARS, r'\\\1', log_format)
-    pattern = re.sub(REGEX_LOG_FORMAT_VARIABLE, '(?P<\\1>.*)', pattern)
-    return re.compile(pattern)
-
-
-def extract_variables(log_format):
-    if log_format == 'combined':
-        log_format = LOG_FORMAT_COMBINED
-    for match in re.findall(REGEX_LOG_FORMAT_VARIABLE, log_format):
-        yield match
-
-
 # ======================
 # generator utilities
 # ======================
@@ -204,8 +130,11 @@ def map_field(field, func, dict_sequence):
     set the result as new value for that key.
     """
     for item in dict_sequence:
-        item[field] = func(item.get(field, None))
-        yield item
+        try:
+            item[field] = func(item.get(field, None))
+            yield item
+        except ValueError:
+            pass
 
 
 def add_field(field, func, dict_sequence):
@@ -405,18 +334,16 @@ def setup_reporter(processor, arguments):
 def process(arguments):
     access_log = arguments['--access-log']
     log_format = arguments['--log-format']
-    if access_log is None or log_format is None:
-        config = arguments['--config']
-        if config is None:
-            config = get_nginx_conf_path()
-        access_log, log_format = extract_nginx_conf(config, access_log)
-    else:
-        config = None
+    if access_log is None:
+        access_log, log_format = detect_log_config(arguments)
+
     logging.info('access_log: %s', access_log)
     logging.info('log_format: %s', log_format)
+    if not os.path.exists(access_log):
+        error_exit('access log file "%s" does not exist' % access_log)
 
     if arguments['info']:
-        print('configuration file:\n ', config)
+        print('nginx configuration file:\n ', detect_config_path())
         print('access log file:\n ', access_log)
         print('access log format:\n ', log_format)
         print('available variables:\n ', ', '.join(sorted(extract_variables(log_format))))
