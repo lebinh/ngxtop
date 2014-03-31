@@ -5,8 +5,8 @@
 **ngxtop** parses your nginx access log and outputs useful, ``top``-like, metrics of your nginx server.
 So you can tell what is happening with your server in real-time.
 
-Can be used also with Apache log files (experimental). In this case, if not log format is specified, 'combined' will be
-used. If the script doesn't detect redirections properly you can force it by using the '-s' option.
+Can read from stdin (experimental), useful for remote log files. In this case, if not log
+format is specified, 'combined' will be used.
 
 Installation
 ------------
@@ -27,7 +27,6 @@ Usage
         ngxtop [options]
         ngxtop [options] (print|top|avg|sum) <var>
         ngxtop info
-        tail -f /var/log/apache2/access.log | ngxtop [-s]
 
     Options:
         -l <file>, --access-log <file>  access log file to parse.
@@ -52,7 +51,6 @@ Usage
         -c <file>, --config <file>  allow ngxtop to parse nginx config file for log format and location.
         -i <filter-expression>, --filter <filter-expression>  filter in, records satisfied given expression are processed.
         -p <filter-expression>, --pre-filter <filter-expression> in-filter expression to check in pre-parsing phase.
-        -s, --from-stdin  read lines from stdin.
         -b, --db-dump  dump database to disk when finished
 
 Samples
@@ -119,4 +117,31 @@ List 4xx or 5xx responses together with HTTP referer
     | request   |   status | http_referer   |
     |-----------+----------+----------------|
     | -         |      400 | -              |
+
+Output from remote server using log-format option
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+::
+
+    $ ssh user@remote_server tail -f /var/log/apache2/access.log | ngxtop -f common
+    running for 20 seconds, 1068 records processed: 53.01 req/sec
+
+    Summary:
+    |   count |   avg_bytes_sent |   2xx |   3xx |   4xx |   5xx |
+    |---------+------------------+-------+-------+-------+-------|
+    |    1068 |        28026.763 |  1029 |    20 |    19 |     0 |
+
+    Detailed:
+    | request_path                             |   count |   avg_bytes_sent |   2xx |   3xx |   4xx |   5xx |
+    |------------------------------------------+---------+------------------+-------+-------+-------+-------|
+    | /xxxxxxxxxx                              |     199 |        55150.402 |   199 |     0 |     0 |     0 |
+    | /xxxxxxxx/xxxxx                          |     167 |        47591.826 |   167 |     0 |     0 |     0 |
+    | /xxxxxxxxxxxxx/xxxxxx                    |      25 |         7432.200 |    25 |     0 |     0 |     0 |
+    | /xxxx/xxxxx/x/xxxxxxxxxxxxx/xxxxxxx      |      22 |          698.727 |    22 |     0 |     0 |     0 |
+    | /xxxx/xxxxx/x/xxxxxxxxxxxxx/xxxxxx       |      19 |         7431.632 |    19 |     0 |     0 |     0 |
+    | /xxxxx/xxxxx/                            |      18 |         7840.889 |    18 |     0 |     0 |     0 |
+    | /xxxxxxxx/xxxxxxxxxxxxxxxxx              |      15 |         7356.000 |    15 |     0 |     0 |     0 |
+    | /xxxxxxxxxxx/xxxxxxxx                    |      15 |         9978.800 |    15 |     0 |     0 |     0 |
+    | /xxxxx/                                  |      14 |            0.000 |     0 |    14 |     0 |     0 |
+    | /xxxxxxxxxx/xxxxxxxx/xxxxx               |      13 |        20530.154 |    13 |     0 |     0 |     0 |
 
