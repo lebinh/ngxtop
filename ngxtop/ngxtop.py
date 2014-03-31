@@ -29,7 +29,6 @@ Options:
     -c <file>, --config <file>  allow ngxtop to parse nginx config file for log format and location.
     -i <filter-expression>, --filter <filter-expression>  filter in, records satisfied given expression are processed.
     -p <filter-expression>, --pre-filter <filter-expression> in-filter expression to check in pre-parsing phase.
-    -s, --from-stdin  read lines from stdin.
     -b, --db-dump  dump database to disk
 
 Examples:
@@ -429,7 +428,7 @@ def process(arguments):
     global processor
     access_log = arguments['--access-log']
     log_format = arguments['--log-format']
-    if not access_log and (arguments['--from-stdin'] or not sys.stdin.isatty()):
+    if not access_log and not sys.stdin.isatty():
         access_log = 'stdin'
     else:
         if access_log is None or log_format is None:
