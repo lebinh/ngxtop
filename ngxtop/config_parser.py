@@ -2,6 +2,7 @@
 Nginx config parser and pattern builder.
 """
 import os
+import glob
 import re
 import subprocess
 
@@ -13,6 +14,7 @@ from utils import choose_one, error_exit
 
 REGEX_SPECIAL_CHARS = r'([\.\*\+\?\|\(\)\{\}\[\]])'
 REGEX_LOG_FORMAT_VARIABLE = r'\$([a-z0-9\_]+)'
+REGEX_CONFIG_INCLUDES = r'include (.+);'
 LOG_FORMAT_COMBINED = '$remote_addr - $remote_user [$time_local] ' \
                       '"$request" $status $body_bytes_sent ' \
                       '"$http_referer" "$http_user_agent"'
@@ -97,6 +99,13 @@ def detect_log_config(arguments):
 
     with open(config) as f:
         config_str = f.read()
+
+    if 'include' in config_str:
+        inre = re.compile(REGEX_CONFIG_INCLUDES)
+	for include in inre.findall(config_str):
+	    for filename in glob.glob(include):
+	    	config_str += open(filename).read()
+
     access_logs = dict(get_access_logs(config_str))
     if not access_logs:
         error_exit('Access log file is not provided and ngxtop cannot detect it from your config file (%s).' % config)
