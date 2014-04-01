@@ -1,9 +1,15 @@
-===================================================
-``ngxtop`` - **real-time** metrics for nginx server
-===================================================
+================================================================
+``ngxtop`` - **real-time** metrics for nginx server (and others)
+================================================================
 
 **ngxtop** parses your nginx access log and outputs useful, ``top``-like, metrics of your nginx server.
 So you can tell what is happening with your server in real-time.
+
+``ngxtop`` tries to determine the correct location and format of nginx access log file by default, so you can just run
+``ngxtop`` and having a close look at all requests coming to your nginx server. But it does not limit you to nginx
+and the default top view. ``ngxtop`` is flexible enough for you to configure and change most of its behaviours.
+You can query for different things, specify your log and format, even parse remote Apache common access log with ease.
+See sample usages below for some ideas about what you can do with it.
 
 Installation
 ------------
@@ -43,6 +49,11 @@ Usage
         -d, --debug  print every line and parsed record
         -h, --help  print this help message.
         --version  print version information.
+
+        Advanced / experimental options:
+        -c <file>, --config <file>  allow ngxtop to parse nginx config file for log format and location.
+        -i <filter-expression>, --filter <filter-expression>  filter in, records satisfied given expression are processed.
+        -p <filter-expression>, --pre-filter <filter-expression> in-filter expression to check in pre-parsing phase.
 
 Samples
 -------
@@ -108,4 +119,31 @@ List 4xx or 5xx responses together with HTTP referer
     | request   |   status | http_referer   |
     |-----------+----------+----------------|
     | -         |      400 | -              |
+
+Parse apache log from remote server with `common` format
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+::
+
+    $ ssh user@remote_server tail -f /var/log/apache2/access.log | ngxtop -f common
+    running for 20 seconds, 1068 records processed: 53.01 req/sec
+
+    Summary:
+    |   count |   avg_bytes_sent |   2xx |   3xx |   4xx |   5xx |
+    |---------+------------------+-------+-------+-------+-------|
+    |    1068 |        28026.763 |  1029 |    20 |    19 |     0 |
+
+    Detailed:
+    | request_path                             |   count |   avg_bytes_sent |   2xx |   3xx |   4xx |   5xx |
+    |------------------------------------------+---------+------------------+-------+-------+-------+-------|
+    | /xxxxxxxxxx                              |     199 |        55150.402 |   199 |     0 |     0 |     0 |
+    | /xxxxxxxx/xxxxx                          |     167 |        47591.826 |   167 |     0 |     0 |     0 |
+    | /xxxxxxxxxxxxx/xxxxxx                    |      25 |         7432.200 |    25 |     0 |     0 |     0 |
+    | /xxxx/xxxxx/x/xxxxxxxxxxxxx/xxxxxxx      |      22 |          698.727 |    22 |     0 |     0 |     0 |
+    | /xxxx/xxxxx/x/xxxxxxxxxxxxx/xxxxxx       |      19 |         7431.632 |    19 |     0 |     0 |     0 |
+    | /xxxxx/xxxxx/                            |      18 |         7840.889 |    18 |     0 |     0 |     0 |
+    | /xxxxxxxx/xxxxxxxxxxxxxxxxx              |      15 |         7356.000 |    15 |     0 |     0 |     0 |
+    | /xxxxxxxxxxx/xxxxxxxx                    |      15 |         9978.800 |    15 |     0 |     0 |     0 |
+    | /xxxxx/                                  |      14 |            0.000 |     0 |    14 |     0 |     0 |
+    | /xxxxxxxxxx/xxxxxxxx/xxxxx               |      13 |        20530.154 |    13 |     0 |     0 |     0 |
 

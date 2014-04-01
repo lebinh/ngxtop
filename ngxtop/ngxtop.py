@@ -51,6 +51,9 @@ Examples:
 
     Average body bytes sent of 200 responses of requested path begin with 'foo':
     $ ngxtop avg bytes_sent --filter 'status == 200 and request_path.startswith("foo")'
+
+    Analyze apache access log from remote machine using 'common' log format
+    $ ssh remote tail -f /var/log/apache2/access.log | ngxtop -f common
 """
 from __future__ import print_function
 import atexit
@@ -303,7 +306,9 @@ def build_processor(arguments):
 
 def build_source(access_log, arguments):
     # constructing log source
-    if arguments['--no-follow']:
+    if access_log == 'stdin':
+        lines = sys.stdin
+    elif arguments['--no-follow']:
         lines = open(access_log)
     else:
         lines = follow(access_log)
@@ -334,6 +339,9 @@ def setup_reporter(processor, arguments):
 def process(arguments):
     access_log = arguments['--access-log']
     log_format = arguments['--log-format']
+    if access_log is None and not sys.stdin.isatty():
+        # assume logs can be fetched directly from stdin when piped
+        access_log = 'stdin'
     if access_log is None:
         access_log, log_format = detect_log_config(arguments)
 
