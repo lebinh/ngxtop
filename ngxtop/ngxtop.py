@@ -347,7 +347,7 @@ def process(arguments):
 
     logging.info('access_log: %s', access_log)
     logging.info('log_format: %s', log_format)
-    if not os.path.exists(access_log):
+    if access_log != 'stdin' and not os.path.exists(access_log):
         error_exit('access log file "%s" does not exist' % access_log)
 
     if arguments['info']:
