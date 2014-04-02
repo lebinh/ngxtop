@@ -18,6 +18,9 @@ REGEX_CONFIG_INCLUDES = r'include (.+);'
 LOG_FORMAT_COMBINED = '$remote_addr - $remote_user [$time_local] ' \
                       '"$request" $status $body_bytes_sent ' \
                       '"$http_referer" "$http_user_agent"'
+LOG_FORMAT_COMMON   = '$remote_addr - $remote_user [$time_local] ' \
+                      '"$request" $status $body_bytes_sent ' \
+                      '"$http_x_forwarded_for"'
 
 # common parser element
 semicolon = Literal(';').suppress()
@@ -136,6 +139,8 @@ def build_pattern(log_format):
     """
     if log_format == 'combined':
         log_format = LOG_FORMAT_COMBINED
+    elif log_format == 'common':
+        log_format = LOG_FORMAT_COMMON
     pattern = re.sub(REGEX_SPECIAL_CHARS, r'\\\1', log_format)
     pattern = re.sub(REGEX_LOG_FORMAT_VARIABLE, '(?P<\\1>.*)', pattern)
     return re.compile(pattern)
