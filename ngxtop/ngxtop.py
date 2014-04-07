@@ -28,6 +28,7 @@ Options:
     Advanced / experimental options:
     -c <file>, --config <file>  allow ngxtop to parse nginx config file for log format and location.
     -i <filter-expression>, --filter <filter-expression>  filter in, records satisfied given expression are processed.
+    -j <file>, --custom-log-format <file> specify log format in a file.
     -p <filter-expression>, --pre-filter <filter-expression> in-filter expression to check in pre-parsing phase.
 
 Examples:
@@ -74,7 +75,13 @@ except ImportError:
 from docopt import docopt
 import tabulate
 
-from config_parser import detect_log_config, detect_config_path, extract_variables, build_pattern
+from config_parser import (
+    detect_log_config,
+    detect_config_path,
+    detect_custom_log,
+    extract_variables,
+    build_pattern,
+)
 from utils import error_exit
 
 
@@ -339,11 +346,15 @@ def setup_reporter(processor, arguments):
 def process(arguments):
     access_log = arguments['--access-log']
     log_format = arguments['--log-format']
+    custom_log_format = arguments['--custom-log-format']
+
     if access_log is None and not sys.stdin.isatty():
         # assume logs can be fetched directly from stdin when piped
         access_log = 'stdin'
     if access_log is None:
         access_log, log_format = detect_log_config(arguments)
+    if custom_log_format:
+        log_format = detect_custom_log(arguments)
 
     logging.info('access_log: %s', access_log)
     logging.info('log_format: %s', log_format)
