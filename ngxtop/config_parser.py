@@ -1,9 +1,11 @@
 """
 Nginx config parser and pattern builder.
 """
+import ConfigParser
 import os
 import re
 import subprocess
+import sys
 
 from pyparsing import Literal, Word, ZeroOrMore, OneOrMore, Group, \
     printables, quotedString, pythonStyleComment, removeQuotes
@@ -120,6 +122,22 @@ def detect_log_config(arguments):
     if format_name not in log_formats:
         error_exit('Incorrect format name set in config for access log file "%s"' % log_path)
     return log_path, log_formats[format_name]
+
+
+def detect_custom_log(arguments):
+    """
+    Get the custom log format specified in a custom config file
+    :return: log format
+    """
+    custom_log = arguments['--custom-log-format']
+    if not os.path.exists(custom_log):
+        error_exit('Custom format config not found: %s' % custom_log)
+
+    config = ConfigParser.ConfigParser()
+    config.read(custom_log)
+    log_format = config.get('log_format', 'log_format')
+    log_format = log_format.replace('\n', '').replace('\'', '')
+    return log_format
 
 
 def build_pattern(log_format):
