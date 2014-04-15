@@ -18,6 +18,7 @@ Options:
     -w <var>, --having <expr>  having clause [default: 1]
     -o <var>, --order-by <var>  order of output for default query [default: count]
     -n <number>, --limit <number>  limit the number of records included in report for top command [default: 10]
+    -s <number>, --second <number> seconds of the records save in the memory [default: 20]
     -a <exp> ..., --a <exp> ...  add exp (must be aggregation exp: sum, avg, min, max, etc.) into output
 
     -v, --verbose  more verbose output
@@ -198,9 +199,10 @@ def parse_log(lines, pattern):
 # Records and statistic processor
 # =================================
 class SQLProcessor(object):
-    def __init__(self, report_queries, fields, index_fields=None):
+    def __init__(self, report_queries, fields, index_fields=None, second=20):
         self.begin = False
         self.report_queries = report_queries
+        self.second = second
         self.index_fields = index_fields if index_fields is not None else []
         self.column_list = ','.join(fields)
         self.holder_list = ','.join(':%s' % var for var in fields)
@@ -232,6 +234,10 @@ class SQLProcessor(object):
                 columns = (d[0] for d in cursor.description)
                 result = tabulate.tabulate(cursor.fetchall(), headers=columns, tablefmt='orgtbl', floatfmt='.3f')
                 output.append('%s\n%s' % (label, result))
+        now = time.time()
+        if now - self.begin >= self.second:
+           cursor.execute("delete from log;")
+           self.begin = now
         return '\n\n'.join(output)
 
     def init_db(self):
@@ -306,7 +312,8 @@ def build_processor(arguments):
     for field in fields:
         processor_fields.extend(field.split(','))
 
-    processor = SQLProcessor(report_queries, processor_fields)
+    second = int(arguments['--second']) if arguments['--second'] else 20
+    processor = SQLProcessor(report_queries, fields, second=second)
     return processor
 
 
