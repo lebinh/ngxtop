@@ -8,7 +8,7 @@ import subprocess
 from pyparsing import Literal, Word, ZeroOrMore, OneOrMore, Group, \
     printables, quotedString, pythonStyleComment, removeQuotes
 
-from utils import choose_one, error_exit
+from .utils import choose_one, error_exit
 
 
 REGEX_SPECIAL_CHARS = r'([\.\*\+\?\|\(\)\{\}\[\]])'
