@@ -74,8 +74,8 @@ except ImportError:
 from docopt import docopt
 import tabulate
 
-from config_parser import detect_log_config, detect_config_path, extract_variables, build_pattern
-from utils import error_exit
+from .config_parser import detect_log_config, detect_config_path, extract_variables, build_pattern
+from .utils import error_exit
 
 
 DEFAULT_QUERIES = [
