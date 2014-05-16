@@ -213,12 +213,17 @@ def build_source(access_log, arguments):
 def setup_reporter(processor, arguments):
     if arguments['--no-follow']:
         return
-
-    scr = curses.initscr()
-    atexit.register(curses.endwin)
+    no_terminal = False
+    try:
+        scr = curses.initscr()
+        atexit.register(curses.endwin)
+    except curses.error:
+        no_terminal = True
 
     def print_report(sig, frame):
         output = processor.report()
+        if no_terminal: 
+            return
         scr.erase()
         try:
             scr.addstr(output)
