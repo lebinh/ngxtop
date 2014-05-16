@@ -2,14 +2,14 @@ from setuptools import setup
 
 setup(
     name='ngxtop',
-    version='0.0.2',
+    version='0.0.3',
     description='Real-time metrics for nginx server',
     long_description=open('README.rst').read(),
     license='MIT',
 
-    url='https://github.com/lebinh/ngxtop',
+    url='https://github.com/lebinh/ngxtop;https://github.com/toontong/ngxtop',
     author='Binh Le',
-    author_email='lebinh.it@gmail.com',
+    author_email='lebinh.it@gmail.com;chuantong.huang@gmail.com',
 
     classifiers=[
         'Development Status :: 4 - Beta',
@@ -24,7 +24,7 @@ setup(
         'Programming Language :: Python :: 3.2',
         'Programming Language :: Python :: 3.3',
     ],
-    keywords='cli monitoring nginx system',
+    keywords='access-log cli monitoring nginx system',
 
     packages=['ngxtop'],
     install_requires=['docopt', 'tabulate', 'pyparsing'],

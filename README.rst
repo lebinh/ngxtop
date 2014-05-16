@@ -159,10 +159,12 @@ Parse apache log from remote server with `common` format
 Use the `email` for the porcessor-report the `5xx` error real-time(check every 10 second.):
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    $ ngxtop --filter '5 == status_type' \
-        -e 'user_who_want_recevc_the_email@xxx.com;user2@163.com'\
-        -F 'email_send_from' \
-        -S 'smtp_server' \
-        -u 'smtp_auth_user' \
-        -P '****password***' \
-        -t 10 
+::
+
+    $ ngxtop --filter '5 == status_type' \\
+    -e 'user_who_want_recevc_the_email@xxx.com;user2@163.com'\\
+    -F 'email_send_from' \\
+    -S 'smtp_server' \\
+    -u 'smtp_auth_user' \\
+    -P '**password**' \\
+    -t 10 
