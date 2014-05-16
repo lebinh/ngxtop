@@ -7,6 +7,7 @@ Usage:
     ngxtop [options] query <query> ...
 
 Options:
+    -r <reportor>, --reportor <reportor>  choice in[sql, email] or other Implemented by your self(see the source code sqlprocessor.py). [default: sql]
     -l <file>, --access-log <file>  access log file to parse.
     -f <format>, --log-format <format>  log format as specify in log_format directive. [default: combined]
     --no-follow  ngxtop default behavior is to ignore current lines in log
@@ -14,13 +15,20 @@ Options:
                      Use this flag to tell ngxtop to process the current content of the access log instead.
     -t <seconds>, --interval <seconds>  report interval when running in follow mode [default: 2.0]
 
-    -g <var>, --group-by <var>  group by variable [default: request_path]
+    -g <var>, --group-by <var>  group by variable [default: request_path].
     -w <var>, --having <expr>  having clause [default: 1]
     -o <var>, --order-by <var>  order of output for default query [default: count]
     -n <number>, --limit <number>  limit the number of records included in report for top command [default: 10]
     -s <number>, --second <number> seconds of the records save in the memory [default: 20]
     -a <exp> ..., --a <exp> ...  add exp (must be aggregation exp: sum, avg, min, max, etc.) into output
-
+ 
+    -e <email>, --email <email> ...  email to who.
+    -S <smtp>, --smtp <smtp>  smtp service.
+    -u <user>, --user <user>  smtp auth user.
+    -P <password>, --password <password>  smtp auth user's passwod.
+    -F <from-mail>, --from <from-email>  who send the email.
+    -T <subject>, --subject <subject>  email Subject-title [default: (hostname)ngxtop-access-log-email-notify].
+ 
     -v, --verbose  more verbose output
     -d, --debug  print every line and parsed record
     -h, --help  print this help message.
@@ -30,7 +38,7 @@ Options:
     -c <file>, --config <file>  allow ngxtop to parse nginx config file for log format and location.
     -i <filter-expression>, --filter <filter-expression>  filter in, records satisfied given expression are processed.
     -p <filter-expression>, --pre-filter <filter-expression> in-filter expression to check in pre-parsing phase.
-
+     
 Examples:
     All examples read nginx config file for access log location and format.
     If you want to specify the access log file and / or log format, use the -f and -a options.
@@ -77,39 +85,8 @@ import tabulate
 
 from config_parser import detect_log_config, detect_config_path, extract_variables, build_pattern
 from utils import error_exit
-
-
-DEFAULT_QUERIES = [
-    ('Summary:',
-     '''SELECT
-       count(1)                                    AS count,
-       avg(bytes_sent)                             AS avg_bytes_sent,
-       count(CASE WHEN status_type = 2 THEN 1 END) AS '2xx',
-       count(CASE WHEN status_type = 3 THEN 1 END) AS '3xx',
-       count(CASE WHEN status_type = 4 THEN 1 END) AS '4xx',
-       count(CASE WHEN status_type = 5 THEN 1 END) AS '5xx'
-     FROM log
-     ORDER BY %(--order-by)s DESC
-     LIMIT %(--limit)s'''),
-
-    ('Detailed:',
-     '''SELECT
-       %(--group-by)s,
-       count(1)                                    AS count,
-       avg(bytes_sent)                             AS avg_bytes_sent,
-       count(CASE WHEN status_type = 2 THEN 1 END) AS '2xx',
-       count(CASE WHEN status_type = 3 THEN 1 END) AS '3xx',
-       count(CASE WHEN status_type = 4 THEN 1 END) AS '4xx',
-       count(CASE WHEN status_type = 5 THEN 1 END) AS '5xx'
-     FROM log
-     GROUP BY %(--group-by)s
-     HAVING %(--having)s
-     ORDER BY %(--order-by)s DESC
-     LIMIT %(--limit)s''')
-]
-
-DEFAULT_FIELDS = set(['status_type', 'bytes_sent'])
-
+from sqlprocessor import SQLProcessor
+from emailprocessor import EMailProcessor
 
 # ======================
 # generator utilities
@@ -194,68 +171,6 @@ def parse_log(lines, pattern):
     records = add_field('request_path', parse_request_path, records)
     return records
 
-
-# =================================
-# Records and statistic processor
-# =================================
-class SQLProcessor(object):
-    def __init__(self, report_queries, fields, index_fields=None, second=20):
-        self.begin = False
-        self.report_queries = report_queries
-        self.second = second
-        self.index_fields = index_fields if index_fields is not None else []
-        self.column_list = ','.join(fields)
-        self.holder_list = ','.join(':%s' % var for var in fields)
-        self.conn = sqlite3.connect(':memory:')
-        self.init_db()
-
-    def process(self, records):
-        self.begin = time.time()
-        insert = 'insert into log (%s) values (%s)' % (self.column_list, self.holder_list)
-        logging.info('sqlite insert: %s', insert)
-        with closing(self.conn.cursor()) as cursor:
-            for r in records:
-                cursor.execute(insert, r)
-
-    def report(self):
-        if not self.begin:
-            return ''
-        count = self.count()
-        duration = time.time() - self.begin
-        status = 'running for %.0f seconds, %d records processed: %.2f req/sec'
-        output = [status % (duration, count, count / duration)]
-        with closing(self.conn.cursor()) as cursor:
-            for query in self.report_queries:
-                if isinstance(query, tuple):
-                    label, query = query
-                else:
-                    label = ''
-                cursor.execute(query)
-                columns = (d[0] for d in cursor.description)
-                result = tabulate.tabulate(cursor.fetchall(), headers=columns, tablefmt='orgtbl', floatfmt='.3f')
-                output.append('%s\n%s' % (label, result))
-        now = time.time()
-        if now - self.begin >= self.second:
-           cursor.execute("delete from log;")
-           self.begin = now
-        return '\n\n'.join(output)
-
-    def init_db(self):
-        create_table = 'create table log (%s)' % self.column_list
-        with closing(self.conn.cursor()) as cursor:
-            logging.info('sqlite init: %s', create_table)
-            cursor.execute(create_table)
-            for idx, field in enumerate(self.index_fields):
-                sql = 'create index log_idx%d on log (%s)' % (idx, field)
-                logging.info('sqlite init: %s', sql)
-                cursor.execute(sql)
-
-    def count(self):
-        with closing(self.conn.cursor()) as cursor:
-            cursor.execute('select count(1) from log')
-            return cursor.fetchone()[0]
-
-
 # ===============
 # Log processing
 # ===============
@@ -271,49 +186,16 @@ def process_log(lines, pattern, processor, arguments):
         records = (r for r in records if eval(filter_exp, {}, r))
 
     processor.process(records)
-    print(processor.report())  # this will only run when start in --no-follow mode
+    processor.report()  # this will only run when start in --no-follow mode
 
 
 def build_processor(arguments):
-    fields = arguments['<var>']
-    if arguments['print']:
-        label = ', '.join(fields) + ':'
-        selections = ', '.join(fields)
-        query = 'select %s from log group by %s' % (selections, selections)
-        report_queries = [(label, query)]
-    elif arguments['top']:
-        limit = int(arguments['--limit'])
-        report_queries = []
-        for var in fields:
-            label = 'top %s' % var
-            query = 'select %s, count(1) as count from log group by %s order by count desc limit %d' % (var, var, limit)
-            report_queries.append((label, query))
-    elif arguments['avg']:
-        label = 'average %s' % fields
-        selections = ', '.join('avg(%s)' % var for var in fields)
-        query = 'select %s from log' % selections
-        report_queries = [(label, query)]
-    elif arguments['sum']:
-        label = 'sum %s' % fields
-        selections = ', '.join('sum(%s)' % var for var in fields)
-        query = 'select %s from log' % selections
-        report_queries = [(label, query)]
-    elif arguments['query']:
-        report_queries = arguments['<query>']
-        fields = arguments['<fields>']
+    if arguments['--reportor'] == 'sql':
+        processor = SQLProcessor(arguments)
+    elif arguments['--reportor'] == 'email':
+        processor = EMailProcessor(arguments)
     else:
-        report_queries = [(name, query % arguments) for name, query in DEFAULT_QUERIES]
-        fields = DEFAULT_FIELDS.union(set([arguments['--group-by']]))
-
-    for label, query in report_queries:
-        logging.info('query for "%s":\n %s', label, query)
-
-    processor_fields = []
-    for field in fields:
-        processor_fields.extend(field.split(','))
-
-    second = int(arguments['--second']) if arguments['--second'] else 20
-    processor = SQLProcessor(report_queries, fields, second=second)
+        error_exit('no [%s] Processor was define.' % arguments['--reportor'])
     return processor
 
 
@@ -379,20 +261,19 @@ def process(arguments):
 
 def main():
     args = docopt(__doc__, version='xstat 0.1')
-
+    
     log_level = logging.WARNING
     if args['--verbose']:
         log_level = logging.INFO
     if args['--debug']:
         log_level = logging.DEBUG
-    logging.basicConfig(level=log_level, format='%(levelname)s: %(message)s')
+    logging.basicConfig(level=log_level, format='%(asctime)s - %(levelname)s:%(filename)s[%(lineno)d] - %(message)s')
     logging.debug('arguments:\n%s', args)
 
     try:
         process(args)
     except KeyboardInterrupt:
         sys.exit(0)
-
 
 if __name__ == '__main__':
     main()

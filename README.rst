@@ -32,19 +32,28 @@ Usage
         ngxtop info
 
     Options:
+        -r <reportor>, --reportor <reportor>  choice in[sql, email] or other Implemented by your self(see the source code sqlprocessor.py). [default: sql]
         -l <file>, --access-log <file>  access log file to parse.
-        -f <format>, --log-format <format>  log format as specify in log_format directive.
+        -f <format>, --log-format <format>  log format as specify in log_format directive. [default: combined]
         --no-follow  ngxtop default behavior is to ignore current lines in log
                          and only watch for new lines as they are written to the access log.
                          Use this flag to tell ngxtop to process the current content of the access log instead.
         -t <seconds>, --interval <seconds>  report interval when running in follow mode [default: 2.0]
 
-        -g <var>, --group-by <var>  group by variable [default: request_path]
+        -g <var>, --group-by <var>  group by variable [default: request_path].
         -w <var>, --having <expr>  having clause [default: 1]
         -o <var>, --order-by <var>  order of output for default query [default: count]
         -n <number>, --limit <number>  limit the number of records included in report for top command [default: 10]
+        -s <number>, --second <number> seconds of the records save in the memory [default: 20]
         -a <exp> ..., --a <exp> ...  add exp (must be aggregation exp: sum, avg, min, max, etc.) into output
-
+     
+        -e <email>, --email <email> ...  email to who.
+        -S <smtp>, --smtp <smtp>  smtp service.
+        -u <user>, --user <user>  smtp auth user.
+        -P <password>, --password <password>  smtp auth user's passwod.
+        -F <from-mail>, --from <from-email>  who send the email.
+        -T <subject>, --subject <subject>  email Subject-title [default: (hostname)ngxtop-access-log-email-notify].
+     
         -v, --verbose  more verbose output
         -d, --debug  print every line and parsed record
         -h, --help  print this help message.
@@ -147,3 +156,13 @@ Parse apache log from remote server with `common` format
     | /xxxxx/                                  |      14 |            0.000 |     0 |    14 |     0 |     0 |
     | /xxxxxxxxxx/xxxxxxxx/xxxxx               |      13 |        20530.154 |    13 |     0 |     0 |     0 |
 
+Use the `email` for the porcessor-report the `5xx` error real-time(check every 10 second.):
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    $ ngxtop --filter '5 == status_type' \
+        -e 'user_who_want_recevc_the_email@xxx.com;user2@163.com'\
+        -F 'email_send_from' \
+        -S 'smtp_server' \
+        -u 'smtp_auth_user' \
+        -P '****password***' \
+        -t 10 
