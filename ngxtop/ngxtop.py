@@ -64,7 +64,7 @@ Examples:
     Analyze apache access log from remote machine using 'common' log format
     $ ssh remote tail -f /var/log/apache2/access.log | ngxtop -f common
 """
-from __future__ import print_function
+from __future__ import print_function, absolute_import
 import atexit
 from contextlib import closing
 import curses
@@ -83,10 +83,10 @@ except ImportError:
 from docopt import docopt
 import tabulate
 
-from config_parser import detect_log_config, detect_config_path, extract_variables, build_pattern
-from utils import error_exit
-from sqlprocessor import SQLProcessor
-from emailprocessor import EMailProcessor
+from .config_parser import detect_log_config, detect_config_path, extract_variables, build_pattern
+from .utils import error_exit
+from .sqlprocessor import SQLProcessor
+from .emailprocessor import EMailProcessor
 
 # ======================
 # generator utilities
