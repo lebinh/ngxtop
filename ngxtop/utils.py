@@ -5,6 +5,8 @@ def choose_one(choices, prompt):
     for idx, choice in enumerate(choices):
         print('%d. %s' % (idx + 1, choice))
     selected = None
+    is sys.version[0] == '3':
+        raw_input = input
     while not selected or selected <= 0 or selected > len(choices):
         selected = raw_input(prompt)
         try:
