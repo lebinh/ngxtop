@@ -19,7 +19,7 @@ class EMailProcessor(BaseProcessor):
         self.sender = arguments['--from']
         self.no_follow = arguments['--no-follow']
         self.debug = arguments['--debug'] or arguments['--verbose']
-		self.arguments = arguments
+        self.arguments = arguments
 
         fmt = arguments['--log-format'].replace('-', '')
         fmt = fmt.replace('[', '')
@@ -87,10 +87,10 @@ class EMailProcessor(BaseProcessor):
         now = datetime.now() 
         subject = '[%s]-[%s]-%s' % (socket.gethostname(), now.strftime( '%Y-%m-%d'), self.arguments['--subject'])
 
-		logging.info('will send email[%s] to[%s],smtp[%s]-user[%s]',
+        logging.info('will send email[%s] to[%s],smtp[%s]-user[%s]',
                      subject, self.emails_to, self.smtp, self.user)
-		if not self.emails_to:
-			return False, 'emails_to is empty.'
+        if not self.emails_to:
+            return False, 'emails_to is empty.'
 
         msg = MIMEText(content, 'plain', _charset='utf-8')
         if self.debug:
