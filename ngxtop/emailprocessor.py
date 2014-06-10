@@ -11,16 +11,15 @@ from processor import BaseProcessor
 
 
 class EMailProcessor(BaseProcessor):
-    #def __init__(self, report_queries, fields, index_fields=None, second=20):
     def __init__(self, arguments):
         self.emails_to = arguments['--email']
         self.smtp = arguments['--smtp']
         self.user = arguments['--user']
         self.password = arguments['--password']
         self.sender = arguments['--from']
-        self.subject = '[%s]-%s' % (socket.gethostname(), arguments['--subject'])
         self.no_follow = arguments['--no-follow']
         self.debug = arguments['--debug'] or arguments['--verbose']
+		self.arguments = arguments
 
         fmt = arguments['--log-format'].replace('-', '')
         fmt = fmt.replace('[', '')
@@ -57,7 +56,7 @@ class EMailProcessor(BaseProcessor):
         lst.append(pprint.pformat(summary, indent=4))
         lst.append(split % 'Detailed')
         lst.append(pprint.pformat(detail, indent=4))
-        lst.append(split % 'Access Logs[ Limit 10]')
+        lst.append(split % 'Access Logs[Show in this mail, Max Limit 10]')
         lst.append(pprint.pformat(access_log_buffer[:10], indent=2)) 
         return '\n'.join(lst)
 
@@ -85,27 +84,31 @@ class EMailProcessor(BaseProcessor):
             return msg
 
     def _send_mail(self, content):
-        logging.info('will send email[%s] to[%s],smtp[%s]-user[%s]',
-                     self.subject, self.emails_to, self.smtp, self.user)
+        now = datetime.now() 
+        subject = '[%s]-[%s]-%s' % (socket.gethostname(), now.strftime( '%Y-%m-%d'), self.arguments['--subject'])
+
+		logging.info('will send email[%s] to[%s],smtp[%s]-user[%s]',
+                     subject, self.emails_to, self.smtp, self.user)
+		if not self.emails_to:
+			return False, 'emails_to is empty.'
+
         msg = MIMEText(content, 'plain', _charset='utf-8')
         if self.debug:
             logging.debug('email content:\n%s', content)
             return True, 'just-test, email did not send.'
 
-        msg['Subject'] = self.subject
+        msg['Subject'] = subject
         msg['From'] = self.sender
         msg['To'] = self.emails_to
         try:
             s = smtplib.SMTP()
             s.connect(self.smtp)
             s.login(self.user, self.password)
-            s.sendmail(self.sender, self.emails_to, msg.as_string())
+            s.sendmail(self.sender, self.emails_to.split(';'), msg.as_string())
             s.close()
             logging.info('email was send to[%s]', self.emails_to)
             return True, 'success'
         except Exception, e:
             logging.error('send_mail to[%s] Exception[%s]',
                           self.emails_to, e)
-            return False, 'fail'
-
-
+            return False, 'Exception raise.'

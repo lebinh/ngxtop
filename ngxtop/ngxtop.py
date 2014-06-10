@@ -27,7 +27,7 @@ Options:
     -u <user>, --user <user>  smtp auth user.
     -P <password>, --password <password>  smtp auth user's passwod.
     -F <from-mail>, --from <from-email>  who send the email.
-    -T <subject>, --subject <subject>  email Subject-title [default: (hostname)ngxtop-access-log-email-notify].
+    -T <subject>, --subject <subject>  email Subject-title [default: Ngxtop-Access-Log-Email-Notify].
  
     -v, --verbose  more verbose output
     -d, --debug  print every line and parsed record
