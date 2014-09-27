@@ -12,7 +12,7 @@ from .utils import choose_one, error_exit
 
 
 REGEX_SPECIAL_CHARS = r'([\.\*\+\?\|\(\)\{\}\[\]])'
-REGEX_LOG_FORMAT_VARIABLE = r'\$([a-z0-9\_]+)'
+REGEX_LOG_FORMAT_VARIABLE = r'\$([a-zA-Z0-9\_]+)'
 LOG_FORMAT_COMBINED = '$remote_addr - $remote_user [$time_local] ' \
                       '"$request" $status $body_bytes_sent ' \
                       '"$http_referer" "$http_user_agent"'
