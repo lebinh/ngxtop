@@ -1,3 +1,5 @@
+FYI: Fork which supports ``include`` directive in Nginx config files.
+
 ================================================================
 ``ngxtop`` - **real-time** metrics for nginx server (and others)
 ================================================================
