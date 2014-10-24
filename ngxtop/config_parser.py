@@ -9,11 +9,11 @@ import subprocess
 from pyparsing import Literal, Word, ZeroOrMore, OneOrMore, Group, \
     printables, quotedString, pythonStyleComment, removeQuotes
 
-from utils import choose_one, error_exit
+from .utils import choose_one, error_exit
 
 
 REGEX_SPECIAL_CHARS = r'([\.\*\+\?\|\(\)\{\}\[\]])'
-REGEX_LOG_FORMAT_VARIABLE = r'\$([a-z0-9\_]+)'
+REGEX_LOG_FORMAT_VARIABLE = r'\$([a-zA-Z0-9\_]+)'
 REGEX_CONFIG_INCLUDES = r'include (.+);'
 LOG_FORMAT_COMBINED = '$remote_addr - $remote_user [$time_local] ' \
                       '"$request" $status $body_bytes_sent ' \

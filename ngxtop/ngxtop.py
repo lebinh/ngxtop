@@ -74,8 +74,8 @@ except ImportError:
 from docopt import docopt
 import tabulate
 
-from config_parser import detect_log_config, detect_config_path, extract_variables, build_pattern
-from utils import error_exit
+from .config_parser import detect_log_config, detect_config_path, extract_variables, build_pattern
+from .utils import error_exit
 
 
 DEFAULT_QUERIES = [
@@ -214,6 +214,7 @@ class SQLProcessor(object):
     def process(self, records):
         self.begin = time.time()
         insert = 'insert into log (%s) values (%s)' % (self.column_list, self.holder_list)
+        logging.info('sqlite insert: %s', insert)
         with closing(self.conn.cursor()) as cursor:
             for r in records:
                 cursor.execute(insert, r)
@@ -304,7 +305,12 @@ def build_processor(arguments):
 
     for label, query in report_queries:
         logging.info('query for "%s":\n %s', label, query)
-    processor = SQLProcessor(report_queries, fields)
+
+    processor_fields = []
+    for field in fields:
+        processor_fields.extend(field.split(','))
+
+    processor = SQLProcessor(report_queries, processor_fields)
     return processor
 
 
