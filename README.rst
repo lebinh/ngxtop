@@ -5,6 +5,10 @@
 **ngxtop** parses your nginx access log and outputs useful, ``top``-like, metrics of your nginx server.
 So you can tell what is happening with your server in real-time.
 
+    ``ngxtop`` is designed to run in a short-period time just like the ``top`` command for troubleshooting and monitoring
+    your Nginx server at the moment. If you need a long running monitoring process or storing your webserver stats in external
+    monitoring / graphing system, you can try `Luameter <https://luameter.com>`_.
+
 ``ngxtop`` tries to determine the correct location and format of nginx access log file by default, so you can just run
 ``ngxtop`` and having a close look at all requests coming to your nginx server. But it does not limit you to nginx
 and the default top view. ``ngxtop`` is flexible enough for you to configure and change most of its behaviours.
