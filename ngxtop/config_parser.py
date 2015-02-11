@@ -106,7 +106,7 @@ def detect_log_config(arguments):
 
     log_formats = dict(get_log_formats(config_str))
     if len(access_logs) == 1:
-        log_path, format_name = access_logs.items()[0]
+        log_path, format_name = list(access_logs.items())[0]
         if format_name == 'combined':
             return log_path, LOG_FORMAT_COMBINED
         if format_name not in log_formats:
