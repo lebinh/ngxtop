@@ -65,6 +65,7 @@ import sqlite3
 import time
 import sys
 import signal
+import gzip
 
 try:
     import urlparse
@@ -315,7 +316,10 @@ def build_source(access_log, arguments):
     if access_log == 'stdin':
         lines = sys.stdin
     elif arguments['--no-follow']:
-        lines = open(access_log)
+        if access_log.endswith('.gz'):
+            lines = gzip.open(access_log)
+        else:
+            lines = open(access_log)
     else:
         lines = follow(access_log)
     return lines
