@@ -133,7 +133,7 @@ def build_pattern(log_format):
     elif log_format == 'common':
         log_format = LOG_FORMAT_COMMON
     pattern = re.sub(REGEX_SPECIAL_CHARS, r'\\\1', log_format)
-    pattern = re.sub(REGEX_LOG_FORMAT_VARIABLE, '(?P<\\1>.*)', pattern)
+    pattern = re.sub(REGEX_LOG_FORMAT_VARIABLE, '(?P<\\1>.*?)', pattern)
     return re.compile(pattern)
 
 
