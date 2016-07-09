@@ -98,8 +98,11 @@ def detect_log_config(arguments):
     if not os.path.exists(config):
         error_exit('Nginx config file not found: %s' % config)
 
-    with open(config) as f:
-        config_str = f.read()
+    with open(config) as f1:
+        config_str1 = f1.read()
+    with open("/data/app/bvc_cdn_cache_ngx_lua/conf.d/nginx_log_format.conf") as f2:
+        config_str2 = f2.read()
+    config_str = config_str1 + config_str2
     access_logs = dict(get_access_logs(config_str))
     if not access_logs:
         error_exit('Access log file is not provided and ngxtop cannot detect it from your config file (%s).' % config)
@@ -111,7 +114,8 @@ def detect_log_config(arguments):
             return log_path, LOG_FORMAT_COMBINED
         if format_name not in log_formats:
             error_exit('Incorrect format name set in config for access log file "%s"' % log_path)
-        return log_path, log_formats[format_name]
+        return log_path, log_formats
+        #return log_path, log_formats['mincdn_cache_hit_log']
 
     # multiple access logs configured, offer to select one
     print('Multiple access logs detected in configuration:')
@@ -122,20 +126,22 @@ def detect_log_config(arguments):
     return log_path, log_formats[format_name]
 
 
-def build_pattern(log_format):
+def build_pattern(log_formats):
     """
     Build regular expression to parse given format.
     :param log_format: format string to parse
     :return: regular expression to parse given format
     """
-    if log_format == 'combined':
-        log_format = LOG_FORMAT_COMBINED
-    elif log_format == 'common':
-        log_format = LOG_FORMAT_COMMON
-    pattern = re.sub(REGEX_SPECIAL_CHARS, r'\\\1', log_format)
-    pattern = re.sub(REGEX_LOG_FORMAT_VARIABLE, '(?P<\\1>.*)', pattern)
-    return re.compile(pattern)
-
+    #if log_format == 'combined':
+        #log_format = LOG_FORMAT_COMBINED
+    #elif log_format == 'common':
+        #log_format = LOG_FORMAT_COMMON
+    pattern_list = []
+    for key in log_formats:
+        pattern = re.sub(REGEX_SPECIAL_CHARS, r'\\\1', log_formats[key])
+        pattern = re.sub(REGEX_LOG_FORMAT_VARIABLE, '(?P<\\1>.*)', pattern)
+        pattern_list.append(re.compile(pattern))
+    return pattern_list
 
 def extract_variables(log_format):
     """

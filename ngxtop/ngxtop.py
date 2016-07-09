@@ -171,6 +171,7 @@ def parse_request_path(record):
 
 
 def parse_status_type(record):
+    logging.info ('record[status]: %s', record['status'])
     return record['status'] // 100 if 'status' in record else None
 
 
@@ -182,8 +183,8 @@ def to_float(value):
     return float(value) if value and value != '-' else 0.0
 
 
-def parse_log(lines, pattern):
-    matches = (pattern.match(l) for l in lines)
+def parse_log(lines, pattern_list):
+    matches = (pattern.match(l) for l in lines for pattern in pattern_list)
     records = (m.groupdict() for m in matches if m is not None)
     records = map_field('status', to_int, records)
     records = add_field('status_type', parse_status_type, records)
@@ -253,12 +254,11 @@ class SQLProcessor(object):
 # ===============
 # Log processing
 # ===============
-def process_log(lines, pattern, processor, arguments):
+def process_log(lines, pattern_list, processor, arguments):
     pre_filer_exp = arguments['--pre-filter']
     if pre_filer_exp:
         lines = (line for line in lines if eval(pre_filer_exp, {}, dict(line=line)))
-
-    records = parse_log(lines, pattern)
+    records = parse_log(lines, pattern_list)
 
     filter_exp = arguments['--filter']
     if filter_exp:
@@ -364,10 +364,10 @@ def process(arguments):
         return
 
     source = build_source(access_log, arguments)
-    pattern = build_pattern(log_format)
+    pattern_list = build_pattern(log_format)
     processor = build_processor(arguments)
     setup_reporter(processor, arguments)
-    process_log(source, pattern, processor, arguments)
+    process_log(source, pattern_list, processor, arguments)
 
 
 def main():
@@ -378,7 +378,11 @@ def main():
         log_level = logging.INFO
     if args['--debug']:
         log_level = logging.DEBUG
-    logging.basicConfig(level=log_level, format='%(levelname)s: %(message)s')
+    logging.basicConfig(level=log_level, format='%(levelname)s: %(message)s',
+        datefmt='%a, %d %b %Y %H:%M:%S',
+        filename='/root/ngxtop/tmp/ngxtop.log',  
+        filemode='w'
+    )
     logging.debug('arguments:\n%s', args)
 
     try:
