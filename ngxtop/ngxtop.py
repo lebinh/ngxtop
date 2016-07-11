@@ -171,7 +171,6 @@ def parse_request_path(record):
 
 
 def parse_status_type(record):
-    logging.info ('record[status]: %s', record['status'])
     return record['status'] // 100 if 'status' in record else None
 
 
