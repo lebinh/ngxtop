@@ -347,7 +347,6 @@ def setup_reporter(processor, arguments):
 
 def process(arguments):
     access_log = arguments['--access-log']
-    #log_format = arguments['--log-format']
     if access_log is None and not sys.stdin.isatty():
         # assume logs can be fetched directly from stdin when piped
         access_log = 'stdin'
@@ -381,11 +380,7 @@ def main():
         log_level = logging.INFO
     if args['--debug']:
         log_level = logging.DEBUG
-    logging.basicConfig(level=log_level, format='%(levelname)s: %(message)s',
-        datefmt='%a, %d %b %Y %H:%M:%S',
-        filename='/root/ngxtop/tmp/ngxtop.log',  
-        filemode='w'
-    )
+    logging.basicConfig(level=log_level, format='%(levelname)s: %(message)s')
     logging.debug('arguments:\n%s', args)
 
     try:

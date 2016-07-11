@@ -68,9 +68,7 @@ def get_access_logs(config):
             # nothing to process here
             continue
         access_logs_dict[path] = ['combined']
-        #format_name = 'combined'
         if len(directive) > 2 and '=' not in directive[2]:
-            #format_name = directive[2]
             if directive[2] not in access_logs_dict[path]:
                 if 'combined' in access_logs_dict[path]:
                     access_logs_dict[path] = [directive[2]]
@@ -78,7 +76,6 @@ def get_access_logs(config):
                     (access_logs_dict[path]).append(directive[2])
     return access_logs_dict
 
-        #yield path, format_name
 
 
 def get_log_formats(config):
@@ -134,14 +131,12 @@ def detect_log_config(arguments):
         error_exit('Nginx config file not found: %s' % config)
 
     config_str = get_config_str(config) 
-    #access_logs = dict(get_access_logs(config_str))
     access_logs_dict = get_access_logs(config_str)
     if len(access_logs_dict) == 0:
         error_exit('Access log file is not provided and ngxtop cannot detect it from your config file (%s).' % config)
 
     log_formats_dict = dict(get_log_formats(config_str))
     if len(access_logs_dict) == 1:
-        #log_path, format_name = list(access_logs.items())[0]
         for log_path in access_logs_dict:
             if access_logs_dict[log_path] == ['combined']:
                 return log_path, LOG_FORMAT_COMBINED
