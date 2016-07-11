@@ -183,8 +183,11 @@ def to_float(value):
     return float(value) if value and value != '-' else 0.0
 
 
-def parse_log(lines, pattern_list):
-    matches = (pattern.match(l) for l in lines for pattern in pattern_list)
+def parse_log(lines, pattern):
+    if isinstance(pattern, list): 
+        matches = (pattern_value.match(l) for l in lines for pattern_value in pattern)
+    else:
+        matches = (pattern.match(l) for l in lines )
     records = (m.groupdict() for m in matches if m is not None)
     records = map_field('status', to_int, records)
     records = add_field('status_type', parse_status_type, records)
@@ -254,11 +257,11 @@ class SQLProcessor(object):
 # ===============
 # Log processing
 # ===============
-def process_log(lines, pattern_list, processor, arguments):
+def process_log(lines, pattern, processor, arguments):
     pre_filer_exp = arguments['--pre-filter']
     if pre_filer_exp:
         lines = (line for line in lines if eval(pre_filer_exp, {}, dict(line=line)))
-    records = parse_log(lines, pattern_list)
+    records = parse_log(lines, pattern)
 
     filter_exp = arguments['--filter']
     if filter_exp:
@@ -344,7 +347,7 @@ def setup_reporter(processor, arguments):
 
 def process(arguments):
     access_log = arguments['--access-log']
-    log_format = arguments['--log-format']
+    #log_format = arguments['--log-format']
     if access_log is None and not sys.stdin.isatty():
         # assume logs can be fetched directly from stdin when piped
         access_log = 'stdin'
@@ -364,10 +367,10 @@ def process(arguments):
         return
 
     source = build_source(access_log, arguments)
-    pattern_list = build_pattern(log_format)
+    pattern = build_pattern(log_format, arguments)
     processor = build_processor(arguments)
     setup_reporter(processor, arguments)
-    process_log(source, pattern_list, processor, arguments)
+    process_log(source, pattern, processor, arguments)
 
 
 def main():
