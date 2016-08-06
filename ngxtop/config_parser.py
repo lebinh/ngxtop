@@ -139,7 +139,9 @@ def detect_log_config(arguments):
     if len(access_logs_dict) == 1:
         for log_path in access_logs_dict:
             if access_logs_dict[log_path] == ['combined']:
-                return log_path, LOG_FORMAT_COMBINED
+                log_formats_dict.clear()
+                log_formats_dict['combined'] = LOG_FORMAT_COMBINED
+                return log_path, log_formats_dict
             for format_name in access_logs_dict[log_path]:
                 if format_name not in log_formats_dict:
                     error_exit('Incorrect format name set in config for access log file "%s"' % log_path)

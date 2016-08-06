@@ -346,12 +346,13 @@ def setup_reporter(processor, arguments):
 
 def process(arguments):
     access_log = arguments['--access-log']
+    log_formats_dict = {}
     if access_log is None and not sys.stdin.isatty():
         # assume logs can be fetched directly from stdin when piped
         access_log = 'stdin'
     if access_log is None:
-        access_log, log_format = detect_log_config(arguments)
-        logging.info('log_format: %s', log_format)
+        access_log, log_formats_dict = detect_log_config(arguments)
+        logging.info('log_format: %s', log_formats_dict)
 
     logging.info('access_log: %s', access_log)
     if access_log != 'stdin' and not os.path.exists(access_log):
@@ -360,12 +361,12 @@ def process(arguments):
     if arguments['info']:
         print('nginx configuration file:\n ', detect_config_path())
         print('access log file:\n ', access_log)
-        print('access log format:\n ', log_format)
+        print('access log format:\n ', log_formats_dict)
         print('available variables:\n ', ', '.join(sorted(extract_variables(log_format))))
         return
 
     source = build_source(access_log, arguments)
-    pattern = build_pattern(log_format, arguments)
+    pattern = build_pattern(log_formats_dict, arguments)
     processor = build_processor(arguments)
     setup_reporter(processor, arguments)
     process_log(source, pattern, processor, arguments)
