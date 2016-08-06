@@ -180,14 +180,15 @@ def build_pattern(log_formats_dict, arguments):
             pattern_list.append(re.compile(pattern))
         return pattern_list
 
-def extract_variables(log_format):
+def extract_variables(log_formats_dict):
     """
     Extract all variables from a log format string.
     :param log_format: format string to extract
     :return: iterator over all variables in given format string
     """
-    if log_format == 'combined':
-        log_format = LOG_FORMAT_COMBINED
-    for match in re.findall(REGEX_LOG_FORMAT_VARIABLE, log_format):
-        yield match
+    for log_format in log_formats_dict:
+        if log_format == 'combined':
+            log_format = LOG_FORMAT_COMBINED
+        for match in re.findall(REGEX_LOG_FORMAT_VARIABLE, log_format):
+            yield match
 

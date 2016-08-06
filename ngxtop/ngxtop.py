@@ -362,7 +362,7 @@ def process(arguments):
         print('nginx configuration file:\n ', detect_config_path())
         print('access log file:\n ', access_log)
         print('access log format:\n ', log_formats_dict)
-        print('available variables:\n ', ', '.join(sorted(extract_variables(log_format))))
+        print('available variables:\n ', ', '.join(sorted(extract_variables(log_formats_dict))))
         return
 
     source = build_source(access_log, arguments)
