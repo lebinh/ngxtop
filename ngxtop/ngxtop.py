@@ -183,7 +183,10 @@ def to_float(value):
 
 
 def parse_log(lines, pattern):
-    matches = (pattern.match(l) for l in lines)
+    if isinstance(pattern, list): 
+        matches = (pattern_value.match(l) for l in lines for pattern_value in pattern)
+    else:
+        matches = (pattern.match(l) for l in lines )
     records = (m.groupdict() for m in matches if m is not None)
     records = map_field('status', to_int, records)
     records = add_field('status_type', parse_status_type, records)
@@ -257,7 +260,6 @@ def process_log(lines, pattern, processor, arguments):
     pre_filer_exp = arguments['--pre-filter']
     if pre_filer_exp:
         lines = (line for line in lines if eval(pre_filer_exp, {}, dict(line=line)))
-
     records = parse_log(lines, pattern)
 
     filter_exp = arguments['--filter']
@@ -344,27 +346,27 @@ def setup_reporter(processor, arguments):
 
 def process(arguments):
     access_log = arguments['--access-log']
-    log_format = arguments['--log-format']
+    log_formats_dict = {}
     if access_log is None and not sys.stdin.isatty():
         # assume logs can be fetched directly from stdin when piped
         access_log = 'stdin'
     if access_log is None:
-        access_log, log_format = detect_log_config(arguments)
+        access_log, log_formats_dict = detect_log_config(arguments)
+        logging.info('log_format: %s', log_formats_dict)
 
     logging.info('access_log: %s', access_log)
-    logging.info('log_format: %s', log_format)
     if access_log != 'stdin' and not os.path.exists(access_log):
         error_exit('access log file "%s" does not exist' % access_log)
 
     if arguments['info']:
         print('nginx configuration file:\n ', detect_config_path())
         print('access log file:\n ', access_log)
-        print('access log format:\n ', log_format)
-        print('available variables:\n ', ', '.join(sorted(extract_variables(log_format))))
+        print('access log format:\n ', log_formats_dict)
+        print('available variables:\n ', ', '.join(sorted(extract_variables(log_formats_dict))))
         return
 
     source = build_source(access_log, arguments)
-    pattern = build_pattern(log_format)
+    pattern = build_pattern(log_formats_dict, arguments)
     processor = build_processor(arguments)
     setup_reporter(processor, arguments)
     process_log(source, pattern, processor, arguments)
