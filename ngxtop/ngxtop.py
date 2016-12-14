@@ -55,6 +55,7 @@ Examples:
     Analyze apache access log from remote machine using 'common' log format
     $ ssh remote tail -f /var/log/apache2/access.log | ngxtop -f common
 """
+
 from __future__ import print_function
 import atexit
 from contextlib import closing
