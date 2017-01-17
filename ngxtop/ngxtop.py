@@ -29,6 +29,10 @@ Options:
     -c <file>, --config <file>  allow ngxtop to parse nginx config file for log format and location.
     -i <filter-expression>, --filter <filter-expression>  filter in, records satisfied given expression are processed.
     -p <filter-expression>, --pre-filter <filter-expression> in-filter expression to check in pre-parsing phase.
+    --time-format <time format>,  nginx time format.  [default: %d/%b/%Y:%H:%M:%S]
+    --time-from <time start>,  set left time border
+    --time-to <time end>,  set right time border
+
 
 Examples:
     All examples read nginx config file for access log location and format.
@@ -49,8 +53,7 @@ Examples:
     Print requests with 4xx or 5xx status, together with status and http referer
     $ ngxtop -i 'status >= 400' print request status http_referer
 
-    Average body bytes sent of 200 responses of requested path begin with 'foo':
-    $ ngxtop avg bytes_sent --filter 'status == 200 and request_path.startswith("foo")'
+    Average body bytes sent of 200 responses of requested path begin with 'foo':$ ngxtop avg bytes_sent --filter 'status == 200 and request_path.startswith("foo")'
 
     Analyze apache access log from remote machine using 'common' log format
     $ ssh remote tail -f /var/log/apache2/access.log | ngxtop -f common
@@ -74,8 +77,8 @@ except ImportError:
 from docopt import docopt
 import tabulate
 
-from .config_parser import detect_log_config, detect_config_path, extract_variables, build_pattern
-from .utils import error_exit
+from config_parser import detect_log_config, detect_config_path, extract_variables, build_pattern
+from utils import error_exit
 
 
 DEFAULT_QUERIES = [
@@ -95,6 +98,7 @@ DEFAULT_QUERIES = [
      '''SELECT
        %(--group-by)s,
        count(1)                                    AS count,
+       CAST(count(1) AS float) / CAST({count} AS float) * 100 AS percentage,
        avg(bytes_sent)                             AS avg_bytes_sent,
        count(CASE WHEN status_type = 2 THEN 1 END) AS '2xx',
        count(CASE WHEN status_type = 3 THEN 1 END) AS '3xx',
@@ -107,7 +111,7 @@ DEFAULT_QUERIES = [
      LIMIT %(--limit)s''')
 ]
 
-DEFAULT_FIELDS = set(['status_type', 'bytes_sent'])
+DEFAULT_FIELDS = set(['status_type', 'bytes_sent', 'time_local'])
 
 
 # ======================
@@ -228,7 +232,8 @@ class SQLProcessor(object):
                     label, query = query
                 else:
                     label = ''
-                cursor.execute(query)
+                # format request if it needs percentage cell
+                cursor.execute(query.format(count=count))
                 columns = (d[0] for d in cursor.description)
                 result = tabulate.tabulate(cursor.fetchall(), headers=columns, tablefmt='orgtbl', floatfmt='.3f')
                 output.append('%s\n%s' % (label, result))
@@ -264,8 +269,26 @@ def process_log(lines, pattern, processor, arguments):
     if filter_exp:
         records = (r for r in records if eval(filter_exp, {}, r))
 
+    time_from_exp = arguments['--time-from']
+    time_to_exp = arguments['--time-to']
+    if time_from_exp and time_to_exp:
+        records = filter_time(arguments['--time-format'], time_from_exp, time_to_exp, records)
+
     processor.process(records)
+
+    if time_from_exp and time_to_exp:
+        print ('Statistics for time period from %s to %s \n' % (time_from_exp, time_to_exp))
+
     print(processor.report())  # this will only run when start in --no-follow mode
+
+
+def filter_time(time_format, time_from_exp, time_to_exp, records):
+        time_from = time.strptime(time_from_exp, time_format)
+        time_to = time.strptime(time_to_exp, time_format)
+        for r in records:
+            t = time.strptime(r['time_local'].split()[0], time_format)
+            if time_to <= t >= time_from:
+                yield r
 
 
 def build_processor(arguments):
@@ -280,7 +303,9 @@ def build_processor(arguments):
         report_queries = []
         for var in fields:
             label = 'top %s' % var
-            query = 'select %s, count(1) as count from log group by %s order by count desc limit %d' % (var, var, limit)
+            query = 'select %s, count(1) as count, CAST(count(1) AS float) / CAST({count} AS float) * 100 AS percentage ' \
+                    'from log ' \
+                    'group by %s order by count desc limit %d' % (var, var, limit)
             report_queries.append((label, query))
     elif arguments['avg']:
         label = 'average %s' % fields

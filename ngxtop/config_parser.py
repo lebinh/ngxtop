@@ -8,15 +8,20 @@ import subprocess
 from pyparsing import Literal, Word, ZeroOrMore, OneOrMore, Group, \
     printables, quotedString, pythonStyleComment, removeQuotes
 
-from .utils import choose_one, error_exit
+from utils import choose_one, error_exit
 
 
 REGEX_SPECIAL_CHARS = r'([\.\*\+\?\|\(\)\{\}\[\]])'
 REGEX_LOG_FORMAT_VARIABLE = r'\$([a-zA-Z0-9\_]+)'
-LOG_FORMAT_COMBINED = '$remote_addr - $remote_user [$time_local] ' \
-                      '"$request" $status $body_bytes_sent ' \
-                      '"$http_referer" "$http_user_agent"'
-LOG_FORMAT_COMMON   = '$remote_addr - $remote_user [$time_local] ' \
+
+LOG_FORMAT_COMBINED = '$remote_addr $remote_user [$time_local] $http_x_forwarded_proto "$request" ' \
+                        '$status $body_bytes_sent "$http_referer" ' \
+                        '"$http_user_agent" $hostname $upstream_response_time|$request_time '
+
+# LOG_FORMAT_COMBINED = '$remote_addr - $remote_user [$time_local] ' \
+#                       '"$request" $status $body_bytes_sent ' \
+#                       '"$http_referer" "$http_user_agent"'
+LOG_FORMAT_COMMON  = '$remote_addr - $remote_user [$time_local] ' \
                       '"$request" $status $body_bytes_sent ' \
                       '"$http_x_forwarded_for"'
 
