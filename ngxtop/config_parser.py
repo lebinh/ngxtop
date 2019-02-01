@@ -105,21 +105,34 @@ def detect_log_config(arguments):
         error_exit('Access log file is not provided and ngxtop cannot detect it from your config file (%s).' % config)
 
     log_formats = dict(get_log_formats(config_str))
+    
+    nginx_global_config = detect_config_path()
+    with open(nginx_global_config) as f:
+        nginx_global_config_str = f.read()
+    
+    nginx_global_log_formats = dict(get_log_formats(nginx_global_config_str))
+    
     if len(access_logs) == 1:
         log_path, format_name = list(access_logs.items())[0]
         if format_name == 'combined':
             return log_path, LOG_FORMAT_COMBINED
-        if format_name not in log_formats:
+        if format_name not in dict(list(log_formats.items()) + list(nginx_global_log_formats.items())):
             error_exit('Incorrect format name set in config for access log file "%s"' % log_path)
-        return log_path, log_formats[format_name]
+        if log_formats.get(format_name):
+            return log_path, log_formats[format_name]
+        else:
+            return log_path, nginx_global_log_formats[format_name]
 
     # multiple access logs configured, offer to select one
     print('Multiple access logs detected in configuration:')
     log_path = choose_one(list(access_logs.keys()), 'Select access log file to process: ')
     format_name = access_logs[log_path]
-    if format_name not in log_formats:
+    if format_name not in dict(list(log_formats.items()) + list(nginx_global_log_formats.items())):
         error_exit('Incorrect format name set in config for access log file "%s"' % log_path)
-    return log_path, log_formats[format_name]
+    if log_formats.get(format_name):
+        return log_path, log_formats[format_name]
+    else:
+        return log_path, nginx_global_log_formats[format_name]
 
 
 def build_pattern(log_format):
