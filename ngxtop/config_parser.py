@@ -122,7 +122,17 @@ def detect_log_config(arguments):
             return log_path, log_formats[format_name]
         else:
             return log_path, nginx_global_log_formats[format_name]
-
+    
+    if arguments['--access-log']:
+        log_path = arguments['--access-log']
+        format_name = access_logs[log_path]
+        if format_name not in dict(list(log_formats.items()) + list(nginx_global_log_formats.items())):
+            error_exit('Incorrect format name set in config for access log file "%s"' % log_path)
+        if log_formats.get(format_name):
+            return log_path, log_formats[format_name]
+        else:
+            return log_path, nginx_global_log_formats[format_name]
+    
     # multiple access logs configured, offer to select one
     print('Multiple access logs detected in configuration:')
     log_path = choose_one(list(access_logs.keys()), 'Select access log file to process: ')
@@ -133,6 +143,38 @@ def detect_log_config(arguments):
         return log_path, log_formats[format_name]
     else:
         return log_path, nginx_global_log_formats[format_name]
+
+
+def detect_log_config_by_name(arguments):
+    """
+    Detect access log config (format) on nginx site. Offer user to select if multiple configs are detected.
+    :return: detected / selected config
+    """
+    log_config = dict(detect_logs_configs_by_name(arguments))
+    if len(log_config) == 0:
+        error_exit('Config file for access log "%s" not found' % access_log)
+    elif len(log_config) > 1:
+        print('Multiple configs detected:')
+        configfile = choose_one(list(log_config.keys()), 'Select config file to process: ')
+    else:
+        configfile = list(log_config.keys())[0]
+    return configfile
+
+
+def detect_logs_configs_by_name(arguments):
+    """
+    Detect access log configs (format) on nginx site.
+    :return: iterator over ('detected config', 'detected config') tuple of found configs
+    """
+    nginx_global_config_path = os.path.dirname(detect_config_path())
+    try:
+        proc = subprocess.Popen(['grep', '-r', arguments['--access-log'], nginx_global_config_path], stdout=subprocess.PIPE)
+    except Exception as e:
+        print(e)
+    stdout = proc.communicate()[0]
+    output = stdout#.decode('utf-8')
+    for conf in re.finditer(r'(\S*):\s*access_log', output):
+        yield conf.group(1), conf.group(1)
 
 
 def build_pattern(log_format):
