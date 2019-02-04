@@ -350,7 +350,7 @@ def process(arguments):
         access_log = 'stdin'
     if access_log is None:
         access_log, log_format = detect_log_config(arguments)
-    if access_log is not None and arguments.get('--config') is None:
+    if access_log is not None and arguments.get('--config') is None and not arguments.get('info'):
         arguments['--config'] = detect_log_config_by_name(arguments)
         access_log, log_format = detect_log_config(arguments)
 
