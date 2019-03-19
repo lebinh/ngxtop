@@ -3,7 +3,7 @@
 Usage:
     ngxtop [options]
     ngxtop [options] (print|top|avg|sum) <var> ...
-    ngxtop info
+    ngxtop info [options]
     ngxtop [options] query <query> ...
 
 Options:

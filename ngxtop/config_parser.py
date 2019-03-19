@@ -112,7 +112,7 @@ def detect_log_config(arguments):
             return log_path, LOG_FORMAT_COMBINED
         if format_name not in log_formats:
             error_exit('Incorrect format name set in config for access log file "%s"' % log_path)
-        return log_path, log_formats[format_name]
+        return log_path, ''.join(log_formats[format_name])
 
     # multiple access logs configured, offer to select one
     print('Multiple access logs detected in configuration:')
@@ -120,7 +120,7 @@ def detect_log_config(arguments):
     format_name = access_logs[log_path]
     if format_name not in log_formats:
         error_exit('Incorrect format name set in config for access log file "%s"' % log_path)
-    return log_path, log_formats[format_name]
+    return log_path, ''.join(log_formats[format_name])
 
 
 def custom_build_pattern(log_format):
