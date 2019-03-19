@@ -122,20 +122,47 @@ def detect_log_config(arguments):
     return log_path, log_formats[format_name]
 
 
-def build_pattern(log_format):
-    """
-    Build regular expression to parse given format.
-    :param log_format: format string to parse
-    :return: regular expression to parse given format
-    """
-    if log_format == 'combined':
-        log_format = LOG_FORMAT_COMBINED
-    elif log_format == 'common':
-        log_format = LOG_FORMAT_COMMON
-    pattern = re.sub(REGEX_SPECIAL_CHARS, r'\\\1', log_format)
-    pattern = re.sub(REGEX_LOG_FORMAT_VARIABLE, '(?P<\\1>.*)', pattern)
-    return re.compile(pattern)
+def custom_build_pattern(log_format):
+    buf = '^'
+    var_name = ''
+    var_mode = False
+    for c in log_format:
+        if c == '$':
+            var_mode = True
+        elif c in string.ascii_letters or c in string.digits or c in '_':
+            if var_mode:
+                var_name += c
+            else:
+                buf += '\{}'.format(c)
+        else:
+            if var_mode:
+                buf += '(?P<{}>[^{}]*)\{}'.format(var_name, c, c)
+                var_mode = False
+                var_name = ''
+            else:
+                buf += '\{}'.format(c)
+    if var_mode:
+        buf += '(?P<{}>[^$]*)'.format(var_name)
+        var_mode = False
+        var_name = ''
+    buf += '$'
+    return buf
 
+def build_pattern(log_format):
+    # """
+    # Build regular expression to parse given format.
+    # :param log_format: format string to parse
+    # :return: regular expression to parse given format
+    # """
+    # if log_format == 'combined':
+    #     log_format = LOG_FORMAT_COMBINED
+    # elif log_format == 'common':
+    #     log_format = LOG_FORMAT_COMMON
+    # pattern = re.sub(REGEX_SPECIAL_CHARS, r'\\\1', log_format)
+    # pattern = re.sub(REGEX_LOG_FORMAT_VARIABLE, '(?P<\\1>.*)', pattern)
+    # return re.compile(pattern)
+    pattern = custom_build_pattern(log_format)
+    return re.compile(pattern)
 
 def extract_variables(log_format):
     """
@@ -147,4 +174,3 @@ def extract_variables(log_format):
         log_format = LOG_FORMAT_COMBINED
     for match in re.findall(REGEX_LOG_FORMAT_VARIABLE, log_format):
         yield match
-
