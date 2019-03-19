@@ -4,6 +4,7 @@ Nginx config parser and pattern builder.
 import os
 import re
 import subprocess
+import string
 
 from pyparsing import Literal, Word, ZeroOrMore, OneOrMore, Group, \
     printables, quotedString, pythonStyleComment, removeQuotes
