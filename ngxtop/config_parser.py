@@ -87,7 +87,6 @@ def get_log_formats(config):
         format_string = ''.join(directive[2])
         yield name, format_string
 
-
 def detect_log_config(arguments):
     """
     Detect access log config (path and format) of nginx. Offer user to select if multiple access logs are detected.
@@ -121,6 +120,19 @@ def detect_log_config(arguments):
     if format_name not in log_formats:
         error_exit('Incorrect format name set in config for access log file "%s"' % log_path)
     return log_path, ''.join(log_formats[format_name])
+
+def get_all_log_formats(arguments):
+    config = arguments['--config']
+    if config is None:
+        config = detect_config_path()
+    if not os.path.exists(config):
+        error_exit('Nginx config file not found: %s' % config)
+
+    with open(config) as f:
+        config_str = f.read()
+
+    log_formats = dict(get_log_formats(config_str))
+    return log_formats
 
 
 def custom_build_pattern(log_format):

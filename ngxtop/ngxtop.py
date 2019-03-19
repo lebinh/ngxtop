@@ -74,7 +74,7 @@ except ImportError:
 from docopt import docopt
 import tabulate
 
-from .config_parser import detect_log_config, detect_config_path, extract_variables, build_pattern
+from .config_parser import detect_log_config, detect_config_path, extract_variables, build_pattern, get_all_log_formats
 from .utils import error_exit
 
 
@@ -348,8 +348,11 @@ def process(arguments):
     if access_log is None and not sys.stdin.isatty():
         # assume logs can be fetched directly from stdin when piped
         access_log = 'stdin'
-    if access_log is None:
-        access_log, log_format = detect_log_config(arguments)
+    # if access_log is None:
+    #     access_log, log_format = detect_log_config(arguments)
+    all_log_formats = get_all_log_formats(arguments)
+    if log_format in all_log_formats:
+        log_format = all_log_formats[log_format]
 
     logging.info('access_log: %s', access_log)
     logging.info('log_format: %s', log_format)
