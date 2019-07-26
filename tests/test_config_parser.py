@@ -1,3 +1,4 @@
+import re
 from ngxtop import config_parser
 
 
@@ -17,12 +18,13 @@ def test_get_log_formats():
     assert 'main' in formats
     assert "'$http_referer'" in formats['main']
     assert 'te st' in formats
+    print("Ok")
 
 
 def test_get_access_logs_no_format():
     config = '''
         http {
-            # ubuntu default
+            # ubngxuntu default
             access_log /var/log/nginx/access.log;
 
             # syslog is a valid access log, but we can't follow it
@@ -58,3 +60,20 @@ def test_access_logs_with_format_name():
     assert len(logs) == 2
     assert logs['/path/to/main.log'] == 'main'
     assert logs['/path/to/test.log'] == 'te st'
+
+
+
+if __name__ == "__main__":
+    REGEX_SPECIAL_CHARS = r'([\.\*\+\?\|\(\)\{\}\[\]])'
+    REGEX_LOG_FORMAT_VARIABLE = r'\$([a-zA-Z0-9\_]+)'
+    LOG_FORMAT_COMBINED = '$remote_addr - $remote_user [$time_local] ' \
+                        '"$request" $status $body_bytes_sent ' \
+                        '"$http_referer" "$http_user_agent"'
+    LOG_FORMAT_COMMON   = '$remote_addr - $remote_user [$time_local] ' \
+                        '"$request" $status $body_bytes_sent ' \
+                        '"$http_x_forwarded_for"'
+    log_format = LOG_FORMAT_COMMON
+    pattern = re.sub(REGEX_SPECIAL_CHARS, r'\\\1', log_format)
+    print pattern
+    pattern = re.sub(REGEX_LOG_FORMAT_VARIABLE, '(?P<\\1>.*)', pattern)
+    print pattern

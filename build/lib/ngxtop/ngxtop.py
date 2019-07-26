@@ -107,7 +107,7 @@ DEFAULT_QUERIES = [
      LIMIT %(--limit)s''')
 ]
 
-DEFAULT_FIELDS = set(['status_type', 'bytes_sent', 'cache'])
+DEFAULT_FIELDS = set(['status_type', 'bytes_sent'])
 
 
 # ======================
@@ -365,14 +365,13 @@ def process(arguments):
 
     source = build_source(access_log, arguments)
     pattern = build_pattern(log_format)
-    logging.debug(pattern)
     processor = build_processor(arguments)
     setup_reporter(processor, arguments)
     process_log(source, pattern, processor, arguments)
 
 
 def main():
-    args = docopt(__doc__, version='xstat 0.3')
+    args = docopt(__doc__, version='xstat 0.1')
 
     log_level = logging.WARNING
     if args['--verbose']:
