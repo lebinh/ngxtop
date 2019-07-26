@@ -85,8 +85,7 @@ DEFAULT_QUERIES = [
        count(CASE WHEN status_type = 2 THEN 1 END) AS '2xx',
        count(CASE WHEN status_type = 3 THEN 1 END) AS '3xx',
        count(CASE WHEN status_type = 4 THEN 1 END) AS '4xx',
-       count(CASE WHEN status_type = 5 THEN 1 END) AS '5xx',
-       count(CASE WHEN cache_status = 1 then 1 END) AS 'cached'
+       count(CASE WHEN status_type = 5 THEN 1 END) AS '5xx'
      FROM log
      ORDER BY %(--order-by)s DESC
      LIMIT %(--limit)s'''),
@@ -107,7 +106,7 @@ DEFAULT_QUERIES = [
      LIMIT %(--limit)s''')
 ]
 
-DEFAULT_FIELDS = set(['status_type', 'bytes_sent', 'cache_status'])
+DEFAULT_FIELDS = set(['status_type', 'bytes_sent'])
 
 
 # ======================
@@ -182,7 +181,7 @@ def to_float(value):
     return float(value) if value and value != '-' else 0.0
 
 def hit_or_miss(record):
-    print(record["cache"])
+    logging.debug(record["cache"])
     if(record["cache"].sub("HIT") != 0):
         return 1
     else:
