@@ -86,7 +86,7 @@ DEFAULT_QUERIES = [
        count(CASE WHEN status_type = 3 THEN 1 END) AS '3xx',
        count(CASE WHEN status_type = 4 THEN 1 END) AS '4xx',
        count(CASE WHEN status_type = 5 THEN 1 END) AS '5xx',
-       count(CASE WHEN status_cache = 1 THEN 1 END) AS 'Cached'
+       count(CASE WHEN cache_status = 1 THEN 1 END) AS 'Cached'
      FROM log
      ORDER BY %(--order-by)s DESC
      LIMIT %(--limit)s'''),
