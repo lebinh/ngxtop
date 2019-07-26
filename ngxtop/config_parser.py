@@ -18,7 +18,7 @@ REGEX_LOG_FORMAT_VARIABLE = r'\$([a-zA-Z0-9\_]+)'
 #                       '"$http_referer" "$http_user_agent"'
 LOG_FORMAT_COMBINED = '$remote_addr - $remote_user [$time_local] ' \
                         '"$request" $status $body_bytes_sent ' \
-                        '"$http_referer" "$http_user_agent" $rt $uct $uht $urt $cache_status'
+                        '"$http_referer" "$http_user_agent" $rt $uct $uht $urt $cache'
 LOG_FORMAT_COMMON   = '$remote_addr - $remote_user [$time_local] ' \
                       '"$request" $status $body_bytes_sent ' \
                       '"$http_x_forwarded_for"'

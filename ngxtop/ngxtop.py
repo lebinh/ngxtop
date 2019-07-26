@@ -85,7 +85,8 @@ DEFAULT_QUERIES = [
        count(CASE WHEN status_type = 2 THEN 1 END) AS '2xx',
        count(CASE WHEN status_type = 3 THEN 1 END) AS '3xx',
        count(CASE WHEN status_type = 4 THEN 1 END) AS '4xx',
-       count(CASE WHEN status_type = 5 THEN 1 END) AS '5xx'
+       count(CASE WHEN status_type = 5 THEN 1 END) AS '5xx',
+       count(CASE WHEN cache_status = 1 then 1 END) AS "cached"
      FROM log
      ORDER BY %(--order-by)s DESC
      LIMIT %(--limit)s'''),
@@ -181,7 +182,7 @@ def to_float(value):
     return float(value) if value and value != '-' else 0.0
 
 def hit_or_miss(record):
-    if(record["cache_status"].sub("HIT") != 0):
+    if(record["cache"].sub("HIT") != 0):
         return 1
     else:
         return 0
@@ -196,7 +197,7 @@ def parse_log(lines, pattern):
     records = map_field('bytes_sent', to_int, records)
     records = map_field('request_time', to_float, records)
     records = add_field('request_path', parse_request_path, records)
-    records = map_field('cache_status', hit_or_miss, records)
+    records = add_field('cache_status', hit_or_miss, records)
     return records
 
 
