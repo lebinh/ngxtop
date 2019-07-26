@@ -106,7 +106,7 @@ DEFAULT_QUERIES = [
      LIMIT %(--limit)s''')
 ]
 
-DEFAULT_FIELDS = set(['status_type', 'bytes_sent', 'cache'])
+DEFAULT_FIELDS = set(['status_type', 'bytes_sent', 'cache_status'])
 
 
 # ======================
