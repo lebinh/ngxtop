@@ -185,7 +185,7 @@ def to_float(value):
     return float(value) if value and value != '-' else 0.0
 
 def hit_or_miss(record):
-    if(record["cache"].find("HIT") != 0):
+    if(record["cache"].find("HIT") != -1):
         return 1
     else:
         return 0
