@@ -1,6 +1,6 @@
 Metadata-Version: 1.1
 Name: ngxtop
-Version: 0.0.2
+Version: 0.0.3
 Summary: Real-time metrics for nginx server
 Home-page: https://github.com/lebinh/ngxtop
 Author: Binh Le

@@ -73,8 +73,7 @@ except ImportError:
 
 from docopt import docopt
 import tabulate
-# from .config_parser import detect_log_config, detect_config_path, extract_variables, build_pattern
-import configparser
+from .config_parser import detect_log_config, detect_config_path, extract_variables, build_pattern
 from .utils import error_exit
 
 
@@ -107,7 +106,7 @@ DEFAULT_QUERIES = [
      LIMIT %(--limit)s''')
 ]
 
-DEFAULT_FIELDS = set(['status_type', 'bytes_sent'])
+DEFAULT_FIELDS = set(['status_type', 'bytes_sent', 'cache'])
 
 
 # ======================
@@ -342,7 +341,7 @@ def setup_reporter(processor, arguments):
     signal.setitimer(signal.ITIMER_REAL, 0.1, interval)
 
 
-def process(arguments):
+def process(arguments):    
     access_log = arguments['--access-log']
     log_format = arguments['--log-format']
     if access_log is None and not sys.stdin.isatty():
@@ -365,13 +364,15 @@ def process(arguments):
 
     source = build_source(access_log, arguments)
     pattern = build_pattern(log_format)
+    logging.debug("ducla")
+    logging.debug(pattern)
     processor = build_processor(arguments)
     setup_reporter(processor, arguments)
     process_log(source, pattern, processor, arguments)
 
 
 def main():
-    args = docopt(__doc__, version='xstat 0.1')
+    args = docopt(__doc__, version='xstat 0.3.1')
 
     log_level = logging.WARNING
     if args['--verbose']:
