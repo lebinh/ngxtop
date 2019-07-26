@@ -20,7 +20,21 @@ Installation
 
 ::
 
-    pip install ngxtop
+    Requirement:
+    python
+    pip
+    setuptools
+    wheel
+    tqdm
+    twine
+    How to compile:
+    In the root folder of project, you run this command:
+    python setup.py bdist_wheel
+    How to install:
+    In the root folder of project, you run this command:
+    python -m pip install dist/ngxtop-0.1.2-py2.py3-none-any.whl 
+    Please change ngxtop-0.1.2-py2.py3-none-any.whl by your file.
+    How to run: please run ngxtop --help to know more information
 
 
 Note: ``ngxtop`` is primarily developed and tested with python2 but also supports python3.
