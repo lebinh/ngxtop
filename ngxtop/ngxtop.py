@@ -372,7 +372,7 @@ def process(arguments):
 
 
 def main():
-    args = docopt(__doc__, version='xstat 0.3')
+    args = docopt(__doc__, version='xstat 0.3.1')
 
     log_level = logging.WARNING
     if args['--verbose']:
