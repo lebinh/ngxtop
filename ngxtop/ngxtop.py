@@ -1,10 +1,10 @@
 """ngxtop - ad-hoc query for nginx access log.
 
 Usage:
-    ngxtop [options]
-    ngxtop [options] (print|top|avg|sum) <var> ...
+    ngxtop [options] [--field-expression <field:expression> ...]
+    ngxtop [options] [--field-expression <field:expression> ...] (print|top|avg|sum) <var> ...
     ngxtop info
-    ngxtop [options] query <query> ...
+    ngxtop [options] [--field-expression <field:expression> ...] query <query> ...
 
 Options:
     -l <file>, --access-log <file>  access log file to parse.
@@ -29,6 +29,7 @@ Options:
     -c <file>, --config <file>  allow ngxtop to parse nginx config file for log format and location.
     -i <filter-expression>, --filter <filter-expression>  filter in, records satisfied given expression are processed.
     -p <filter-expression>, --pre-filter <filter-expression> in-filter expression to check in pre-parsing phase.
+    --field-expression <field:expression>... process field in post-parsing phase
 
 Examples:
     All examples read nginx config file for access log location and format.
@@ -51,6 +52,9 @@ Examples:
 
     Average body bytes sent of 200 responses of requested path begin with 'foo':
     $ ngxtop avg bytes_sent --filter 'status == 200 and request_path.startswith("foo")'
+
+    Process request_path, retrieve path from start to the second '/'
+    $ ngxtop --field-expression "request_path: "/".join(request_path.split('/',1)[:2])"
 
     Analyze apache access log from remote machine using 'common' log format
     $ ssh remote tail -f /var/log/apache2/access.log | ngxtop -f common
@@ -263,6 +267,18 @@ def process_log(lines, pattern, processor, arguments):
     filter_exp = arguments['--filter']
     if filter_exp:
         records = (r for r in records if eval(filter_exp, {}, r))
+
+    field_exps = dict(field_exp.split(":", 1)
+                      for field_exp in arguments['--field-expression'])
+
+    def proc(record):
+        for field, exp in field_exps.iteritems():
+            try:
+                record[field] = eval(exp, {}, record)
+            except Exception:
+                logging.exception("Process %s failed" % field)
+        return record
+    records = (proc(record) for record in records)
 
     processor.process(records)
     print(processor.report())  # this will only run when start in --no-follow mode
