@@ -80,6 +80,7 @@ def get_log_formats(config):
     # log_format name [params]
     log_format = Literal('log_format') + parameter + Group(OneOrMore(parameter)) + semicolon
     log_format.ignore(pythonStyleComment)
+    log_format.parseWithTabs()
 
     for directive in log_format.searchString(config).asList():
         name = directive[1]
