@@ -74,7 +74,9 @@ except ImportError:
 from docopt import docopt
 import tabulate
 
-from .config_parser import detect_log_config, detect_config_path, extract_variables, build_pattern
+from .config_parser import (
+    detect_log_config, detect_config_path, extract_variables, build_pattern,
+)
 from .utils import error_exit
 
 
@@ -115,7 +117,8 @@ DEFAULT_FIELDS = set(['status_type', 'bytes_sent'])
 # ======================
 def follow(the_file):
     """
-    Follow a given file and yield new lines when they are available, like `tail -f`.
+    Follow a given file and yield new lines when they are available,
+    like `tail -f`.
     """
     with open(the_file) as f:
         f.seek(0, 2)  # seek to eof
@@ -129,8 +132,8 @@ def follow(the_file):
 
 def map_field(field, func, dict_sequence):
     """
-    Apply given function to value of given key in every dictionary in sequence and
-    set the result as new value for that key.
+    Apply given function to value of given key in every dictionary in sequence
+    and set the result as new value for that key.
     """
     for item in dict_sequence:
         try:
@@ -142,8 +145,8 @@ def map_field(field, func, dict_sequence):
 
 def add_field(field, func, dict_sequence):
     """
-    Apply given function to the record and store result in given field of current record.
-    Do nothing if record already contains given field.
+    Apply given function to the record and store result in given field of
+    current record. Do nothing if record already contains given field.
     """
     for item in dict_sequence:
         if field not in item:
@@ -209,7 +212,8 @@ class SQLProcessor(object):
 
     def process(self, records):
         self.begin = time.time()
-        insert = 'insert into log (%s) values (%s)' % (self.column_list, self.holder_list)
+        insert = 'insert into log (%s) values (%s)' % (self.column_list,
+                                                       self.holder_list)
         logging.info('sqlite insert: %s', insert)
         with closing(self.conn.cursor()) as cursor:
             for r in records:
@@ -230,7 +234,8 @@ class SQLProcessor(object):
                     label = ''
                 cursor.execute(query)
                 columns = (d[0] for d in cursor.description)
-                result = tabulate.tabulate(cursor.fetchall(), headers=columns, tablefmt='orgtbl', floatfmt='.3f')
+                result = tabulate.tabulate(cursor.fetchall(), headers=columns,
+                                           tablefmt='orgtbl', floatfmt='.3f')
                 output.append('%s\n%s' % (label, result))
         return '\n\n'.join(output)
 
@@ -256,7 +261,8 @@ class SQLProcessor(object):
 def process_log(lines, pattern, processor, arguments):
     pre_filer_exp = arguments['--pre-filter']
     if pre_filer_exp:
-        lines = (line for line in lines if eval(pre_filer_exp, {}, dict(line=line)))
+        lines = (line for line in lines
+                 if eval(pre_filer_exp, {}, dict(line=line)))
 
     records = parse_log(lines, pattern)
 
@@ -265,7 +271,7 @@ def process_log(lines, pattern, processor, arguments):
         records = (r for r in records if eval(filter_exp, {}, r))
 
     processor.process(records)
-    print(processor.report())  # this will only run when start in --no-follow mode
+    print(processor.report())  # this will only run when start with --no-follow
 
 
 def build_processor(arguments):
@@ -280,7 +286,8 @@ def build_processor(arguments):
         report_queries = []
         for var in fields:
             label = 'top %s' % var
-            query = 'select %s, count(1) as count from log group by %s order by count desc limit %d' % (var, var, limit)
+            query = ('select %s, count(1) as count from log group by %s order '
+                     'by count desc limit %d' % (var, var, limit))
             report_queries.append((label, query))
     elif arguments['avg']:
         label = 'average %s' % fields
@@ -296,7 +303,8 @@ def build_processor(arguments):
         report_queries = arguments['<query>']
         fields = arguments['<fields>']
     else:
-        report_queries = [(name, query % arguments) for name, query in DEFAULT_QUERIES]
+        report_queries = [(name, query % arguments)
+                          for name, query in DEFAULT_QUERIES]
         fields = DEFAULT_FIELDS.union(set([arguments['--group-by']]))
 
     for label, query in report_queries:
@@ -360,7 +368,9 @@ def process(arguments):
         print('nginx configuration file:\n ', detect_config_path())
         print('access log file:\n ', access_log)
         print('access log format:\n ', log_format)
-        print('available variables:\n ', ', '.join(sorted(extract_variables(log_format))))
+        print('available variables:\n ', ', '.join(
+            sorted(extract_variables(log_format)))
+        )
         return
 
     source = build_source(access_log, arguments)

@@ -13,12 +13,16 @@ from .utils import choose_one, error_exit
 
 REGEX_SPECIAL_CHARS = r'([\.\*\+\?\|\(\)\{\}\[\]])'
 REGEX_LOG_FORMAT_VARIABLE = r'\$([a-zA-Z0-9\_]+)'
-LOG_FORMAT_COMBINED = '$remote_addr - $remote_user [$time_local] ' \
-                      '"$request" $status $body_bytes_sent ' \
-                      '"$http_referer" "$http_user_agent"'
-LOG_FORMAT_COMMON   = '$remote_addr - $remote_user [$time_local] ' \
-                      '"$request" $status $body_bytes_sent ' \
-                      '"$http_x_forwarded_for"'
+LOG_FORMAT_COMBINED = (
+    '$remote_addr - $remote_user [$time_local] '
+    '"$request" $status $body_bytes_sent '
+    '"$http_referer" "$http_user_agent"'
+)
+LOG_FORMAT_COMMON = (
+    '$remote_addr - $remote_user [$time_local] '
+    '"$request" $status $body_bytes_sent '
+    '"$http_x_forwarded_for"'
+)
 
 # common parser element
 semicolon = Literal(';').suppress()
@@ -36,7 +40,8 @@ def detect_config_path():
     try:
         proc = subprocess.Popen(['nginx', '-V'], stderr=subprocess.PIPE)
     except OSError:
-        error_exit('Access log file or format was not set and nginx config file cannot be detected. ' +
+        error_exit('Access log file or format was not set and nginx config '
+                   'file cannot be detected. '
                    'Perhaps nginx is not in your PATH?')
 
     stdout, stderr = proc.communicate()
@@ -75,10 +80,14 @@ def get_access_logs(config):
 def get_log_formats(config):
     """
     Parse config for log_format directives
-    :return: iterator over ('format name', 'format string') tuple of found directives
+    :return: iterator over ('format name', 'format string') tuple of found
+        directives
     """
     # log_format name [params]
-    log_format = Literal('log_format') + parameter + Group(OneOrMore(parameter)) + semicolon
+    log_format = (
+        Literal('log_format') + parameter +
+        Group(OneOrMore(parameter)) + semicolon
+    )
     log_format.ignore(pythonStyleComment)
 
     for directive in log_format.searchString(config).asList():
@@ -89,7 +98,8 @@ def get_log_formats(config):
 
 def detect_log_config(arguments):
     """
-    Detect access log config (path and format) of nginx. Offer user to select if multiple access logs are detected.
+    Detect access log config (path and format) of nginx. Offer user to select
+    if multiple access logs are detected.
     :return: path and format of detected / selected access log
     """
     config = arguments['--config']
@@ -102,7 +112,8 @@ def detect_log_config(arguments):
         config_str = f.read()
     access_logs = dict(get_access_logs(config_str))
     if not access_logs:
-        error_exit('Access log file is not provided and ngxtop cannot detect it from your config file (%s).' % config)
+        error_exit('Access log file is not provided and ngxtop cannot detect '
+                   'it from your config file (%s).' % config)
 
     log_formats = dict(get_log_formats(config_str))
     if len(access_logs) == 1:
@@ -110,15 +121,18 @@ def detect_log_config(arguments):
         if format_name == 'combined':
             return log_path, LOG_FORMAT_COMBINED
         if format_name not in log_formats:
-            error_exit('Incorrect format name set in config for access log file "%s"' % log_path)
+            error_exit('Incorrect format name set in config for access log '
+                       'file "%s"' % log_path)
         return log_path, log_formats[format_name]
 
     # multiple access logs configured, offer to select one
     print('Multiple access logs detected in configuration:')
-    log_path = choose_one(list(access_logs.keys()), 'Select access log file to process: ')
+    log_path = choose_one(list(access_logs.keys()),
+                          'Select access log file to process: ')
     format_name = access_logs[log_path]
     if format_name not in log_formats:
-        error_exit('Incorrect format name set in config for access log file "%s"' % log_path)
+        error_exit('Incorrect format name set in config for access log '
+                   'file "%s"' % log_path)
     return log_path, log_formats[format_name]
 
 
@@ -147,4 +161,3 @@ def extract_variables(log_format):
         log_format = LOG_FORMAT_COMBINED
     for match in re.findall(REGEX_LOG_FORMAT_VARIABLE, log_format):
         yield match
-
