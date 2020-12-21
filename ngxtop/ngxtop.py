@@ -30,6 +30,19 @@ Options:
     -i <filter-expression>, --filter <filter-expression>  filter in, records satisfied given expression are processed.
     -p <filter-expression>, --pre-filter <filter-expression> in-filter expression to check in pre-parsing phase.
 
+Variables:
+    Depending on your log format, the following variables are generally available for filtering, grouping and printing.
+
+    remote_addr             Client ip-address
+    remote_user             Client username for basic http auth
+    time_local              Request timestamp
+    request                 Http method and path
+    status                  Http response code
+    body_bytes_sent         Response size in bytes
+    http_referer            Client referer url
+    http_user_agent         Client browser name
+    http_x_forwarded_for    Client ip-address when proxied
+
 Examples:
     All examples read nginx config file for access log location and format.
     If you want to specify the access log file and / or log format, use the -f and -a options.
