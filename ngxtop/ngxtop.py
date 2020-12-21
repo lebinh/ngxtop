@@ -7,7 +7,7 @@ Usage:
     ngxtop [options] query <query> ...
 
 Options:
-    -l <file>, --access-log <file>  access log file to parse.
+    -l <file>, --access-log <file>  access log file to parse (full path!!! or use $PWD/).
     -f <format>, --log-format <format>  log format as specify in log_format directive. [default: combined]
     --no-follow  ngxtop default behavior is to ignore current lines in log
                      and only watch for new lines as they are written to the access log.
@@ -74,7 +74,7 @@ except ImportError:
 from docopt import docopt
 import tabulate
 
-from .config_parser import detect_log_config, detect_config_path, extract_variables, build_pattern
+from .config_parser import detect_log_config, detect_config_path, extract_variables, build_pattern, detect_log_config_by_name
 from .utils import error_exit
 
 
@@ -349,6 +349,9 @@ def process(arguments):
         # assume logs can be fetched directly from stdin when piped
         access_log = 'stdin'
     if access_log is None:
+        access_log, log_format = detect_log_config(arguments)
+    if access_log is not None and arguments.get('--config') is None and not arguments.get('info'):
+        arguments['--config'] = detect_log_config_by_name(arguments)
         access_log, log_format = detect_log_config(arguments)
 
     logging.info('access_log: %s', access_log)
