@@ -183,15 +183,19 @@ def to_float(value):
 
 
 def parse_log(lines, pattern):
-    matches = (pattern.match(l) for l in lines)
-    records = (m.groupdict() for m in matches if m is not None)
-    records = map_field('status', to_int, records)
-    records = add_field('status_type', parse_status_type, records)
-    records = add_field('bytes_sent', lambda r: r['body_bytes_sent'], records)
-    records = map_field('bytes_sent', to_int, records)
-    records = map_field('request_time', to_float, records)
-    records = add_field('request_path', parse_request_path, records)
-    return records
+    try:
+        matches = (pattern.match(l) for l in lines)
+        records = (m.groupdict() for m in matches if m is not None)
+        records = map_field('status', to_int, records)
+        records = add_field('status_type', parse_status_type, records)
+        records = add_field('bytes_sent', lambda r: r['body_bytes_sent'], records)
+        records = map_field('bytes_sent', to_int, records)
+        records = map_field('request_time', to_float, records)
+        records = add_field('request_path', parse_request_path, records)
+        return records
+    except:
+        print("Parsing log format failed. Verify that all mandatory fields are in place (e.g. bytes_sent)")
+        sys.exit(0)
 
 
 # =================================
