@@ -4,6 +4,7 @@ Nginx config parser and pattern builder.
 import os
 import re
 import subprocess
+import string
 
 from pyparsing import Literal, Word, ZeroOrMore, OneOrMore, Group, \
     printables, quotedString, pythonStyleComment, removeQuotes
@@ -86,7 +87,6 @@ def get_log_formats(config):
         format_string = ''.join(directive[2])
         yield name, format_string
 
-
 def detect_log_config(arguments):
     """
     Detect access log config (path and format) of nginx. Offer user to select if multiple access logs are detected.
@@ -111,7 +111,7 @@ def detect_log_config(arguments):
             return log_path, LOG_FORMAT_COMBINED
         if format_name not in log_formats:
             error_exit('Incorrect format name set in config for access log file "%s"' % log_path)
-        return log_path, log_formats[format_name]
+        return log_path, ''.join(log_formats[format_name])
 
     # multiple access logs configured, offer to select one
     print('Multiple access logs detected in configuration:')
@@ -119,23 +119,63 @@ def detect_log_config(arguments):
     format_name = access_logs[log_path]
     if format_name not in log_formats:
         error_exit('Incorrect format name set in config for access log file "%s"' % log_path)
-    return log_path, log_formats[format_name]
+    return log_path, ''.join(log_formats[format_name])
 
+def get_all_log_formats(arguments):
+    config = arguments['--config']
+    if config is None:
+        config = detect_config_path()
+    if not os.path.exists(config):
+        error_exit('Nginx config file not found: %s' % config)
+
+    with open(config) as f:
+        config_str = f.read()
+
+    log_formats = dict(get_log_formats(config_str))
+    return log_formats
+
+
+def custom_build_pattern(log_format):
+    buf = '^'
+    var_name = ''
+    var_mode = False
+    for c in log_format:
+        if c == '$':
+            var_mode = True
+        elif c in string.ascii_letters or c in string.digits or c in '_':
+            if var_mode:
+                var_name += c
+            else:
+                buf += '\{}'.format(c)
+        else:
+            if var_mode:
+                buf += '(?P<{}>[^{}]*)\{}'.format(var_name, c, c)
+                var_mode = False
+                var_name = ''
+            else:
+                buf += '\{}'.format(c)
+    if var_mode:
+        buf += '(?P<{}>[^$]*)'.format(var_name)
+        var_mode = False
+        var_name = ''
+    buf += '$'
+    return buf
 
 def build_pattern(log_format):
-    """
-    Build regular expression to parse given format.
-    :param log_format: format string to parse
-    :return: regular expression to parse given format
-    """
-    if log_format == 'combined':
-        log_format = LOG_FORMAT_COMBINED
-    elif log_format == 'common':
-        log_format = LOG_FORMAT_COMMON
-    pattern = re.sub(REGEX_SPECIAL_CHARS, r'\\\1', log_format)
-    pattern = re.sub(REGEX_LOG_FORMAT_VARIABLE, '(?P<\\1>.*)', pattern)
+    # """
+    # Build regular expression to parse given format.
+    # :param log_format: format string to parse
+    # :return: regular expression to parse given format
+    # """
+    # if log_format == 'combined':
+    #     log_format = LOG_FORMAT_COMBINED
+    # elif log_format == 'common':
+    #     log_format = LOG_FORMAT_COMMON
+    # pattern = re.sub(REGEX_SPECIAL_CHARS, r'\\\1', log_format)
+    # pattern = re.sub(REGEX_LOG_FORMAT_VARIABLE, '(?P<\\1>.*)', pattern)
+    # return re.compile(pattern)
+    pattern = custom_build_pattern(log_format)
     return re.compile(pattern)
-
 
 def extract_variables(log_format):
     """
@@ -147,4 +187,3 @@ def extract_variables(log_format):
         log_format = LOG_FORMAT_COMBINED
     for match in re.findall(REGEX_LOG_FORMAT_VARIABLE, log_format):
         yield match
-

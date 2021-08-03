@@ -3,7 +3,7 @@
 Usage:
     ngxtop [options]
     ngxtop [options] (print|top|avg|sum) <var> ...
-    ngxtop info
+    ngxtop info [options]
     ngxtop [options] query <query> ...
 
 Options:
@@ -74,7 +74,7 @@ except ImportError:
 from docopt import docopt
 import tabulate
 
-from .config_parser import detect_log_config, detect_config_path, extract_variables, build_pattern
+from .config_parser import detect_log_config, detect_config_path, extract_variables, build_pattern, get_all_log_formats
 from .utils import error_exit
 
 
@@ -348,11 +348,16 @@ def process(arguments):
     if access_log is None and not sys.stdin.isatty():
         # assume logs can be fetched directly from stdin when piped
         access_log = 'stdin'
-    if access_log is None:
-        access_log, log_format = detect_log_config(arguments)
+    # if access_log is None:
+    #     access_log, log_format = detect_log_config(arguments)
+    all_log_formats = get_all_log_formats(arguments)
+    if log_format in all_log_formats:
+        log_format = all_log_formats[log_format]
 
     logging.info('access_log: %s', access_log)
     logging.info('log_format: %s', log_format)
+    if access_log is None:
+        error_exit('access log file is None')
     if access_log != 'stdin' and not os.path.exists(access_log):
         error_exit('access log file "%s" does not exist' % access_log)
 
