@@ -14,10 +14,10 @@ Options:
                      Use this flag to tell ngxtop to process the current content of the access log instead.
     -t <seconds>, --interval <seconds>  report interval when running in follow mode [default: 2.0]
 
-    -g <var>, --group-by <var>  group by variable [default: request_path]
+    -g <varlist>, --group-by <var>  group by variable [default: request_path,http_host,remote_addr]
     -w <var>, --having <expr>  having clause [default: 1]
     -o <var>, --order-by <var>  order of output for default query [default: count]
-    -n <number>, --limit <number>  limit the number of records included in report for top command [default: 20]
+    -n <number>, --limit <number>  limit the number of records included in report for top command [default: 10]
     -a <exp> ..., --a <exp> ...  add exp (must be aggregation exp: sum, avg, min, max, etc.) into output
 
     -v, --verbose  more verbose output
@@ -57,7 +57,6 @@ Examples:
 
     Analyze apache access log from remote machine using 'common' log format
     $ ssh remote tail -f /var/log/apache2/access.log | ngxtop -f common
-
 """
 from __future__ import print_function
 import atexit
@@ -302,8 +301,19 @@ def build_processor(arguments):
         report_queries = arguments['<query>']
         fields = arguments['<fields>']
     else:
-        report_queries = [(name, query % arguments) for name, query in DEFAULT_QUERIES]
-        fields = DEFAULT_FIELDS.union(set([arguments['--group-by']]))
+        # report_queries = [(name, query % arguments) for name, query in DEFAULT_QUERIES]
+        # fields = DEFAULT_FIELDS.union(set([arguments['--group-by']]))
+        report_queries = []
+        group_bys = [i.strip() for i in arguments['--group-by'].split(',')]
+        for name, query in DEFAULT_QUERIES:
+            if '--group-by' not in query:
+                report_queries.append((name, query % arguments))
+                continue
+            for group_by in group_bys:
+                _arguments = arguments.copy()
+                _arguments['--group-by'] = group_by
+                report_queries.append(('%s %s' % (group_by, name), query % _arguments))
+        fields = DEFAULT_FIELDS.union(set(group_bys))
 
     for label, query in report_queries:
         logging.info('query for "%s":\n %s', label, query)
