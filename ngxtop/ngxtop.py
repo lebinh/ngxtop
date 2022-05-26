@@ -223,10 +223,10 @@ class SQLProcessor(object):
     def report(self):
         if not self.begin:
             return ''
-        count = self.count()
+        count,sumbyte = self.count()
         duration = time.time() - self.begin
-        status = 'running for %.0f seconds, %d records processed: %.2f req/sec'
-        output = [status % (duration, count, count / duration)]
+        status = '%s\t\tduration: %.0f sec\nsum: %6d Req, %8.2f MB;\tspeed: %6.1f Req/sec, %6.2f KB/sec;'
+        output = [status % (time.strftime('%F %T'), duration, count, sumbyte/1024/1024, count/duration, sumbyte/1024/duration)]
         with closing(self.conn.cursor()) as cursor:
             for query in self.report_queries:
                 if isinstance(query, tuple):
@@ -251,8 +251,8 @@ class SQLProcessor(object):
 
     def count(self):
         with closing(self.conn.cursor()) as cursor:
-            cursor.execute('select count(1) from log')
-            return cursor.fetchone()[0]
+            cursor.execute('select count(1),sum(bytes_sent) from log')
+            return tuple(cursor.fetchone())
 
 
 # ===============
