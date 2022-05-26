@@ -15,6 +15,18 @@ and the default top view. ``ngxtop`` is flexible enough for you to configure and
 You can query for different things, specify your log and format, even parse remote Apache common access log with ease.
 See sample usages below for some ideas about what you can do with it.
 
+
+
+
+ScreenShot:
+
+------------
+
+.. image:: ./screenshot.png
+   :width: 800
+   :alt: Screenshot
+
+
 Installation
 ------------
 
@@ -32,32 +44,50 @@ Usage
 
     Usage:
         ngxtop [options]
-        ngxtop [options] (print|top|avg|sum) <var>
+        ngxtop [options] (print|top|avg|sum) <var> ...
         ngxtop info
-
+        ngxtop [options] query <query> ...
+    
     Options:
         -l <file>, --access-log <file>  access log file to parse.
-        -f <format>, --log-format <format>  log format as specify in log_format directive.
-        --no-follow  ngxtop default behavior is to ignore current lines in log
+        -f <format>, --log-format <format>  log format as specify in log_format directive. [default: combined]
+        -b --no-follow  ngxtop default behavior is to ignore current lines in log
                          and only watch for new lines as they are written to the access log.
                          Use this flag to tell ngxtop to process the current content of the access log instead.
         -t <seconds>, --interval <seconds>  report interval when running in follow mode [default: 2.0]
-
-        -g <var>, --group-by <var>  group by variable [default: request_path]
+    
+        -g <varlist>, --group-by <varlist>  group by variable [default: request_path,http_host,remote_addr]
         -w <var>, --having <expr>  having clause [default: 1]
         -o <var>, --order-by <var>  order of output for default query [default: count]
         -n <number>, --limit <number>  limit the number of records included in report for top command [default: 10]
         -a <exp> ..., --a <exp> ...  add exp (must be aggregation exp: sum, avg, min, max, etc.) into output
-
+    
         -v, --verbose  more verbose output
         -d, --debug  print every line and parsed record
         -h, --help  print this help message.
         --version  print version information.
-
+    
         Advanced / experimental options:
         -c <file>, --config <file>  allow ngxtop to parse nginx config file for log format and location.
         -i <filter-expression>, --filter <filter-expression>  filter in, records satisfied given expression are processed.
         -p <filter-expression>, --pre-filter <filter-expression> in-filter expression to check in pre-parsing phase.
+    
+    Examples:
+    
+        "top" like dashboard of nginx requests
+        $ ngxtop            # add '-b/--no-follow' to just report once. (same as top -b)
+    
+        same as above, but custom log stream and nginx.conf path,logformat
+        $ tail -n 1 /tmp/access.2022-05-26*.log -f | ngxtop -c /usr/local/nginx/nginx.conf -f main
+    
+        Print requests with 4xx or 5xx status, together with status and http referer
+        $ ngxtop -i 'status >= 400' print request status http_referer
+    
+        Average body bytes sent of 200 responses of requested path begin with 'foo':
+        $ ngxtop avg bytes_sent --filter 'status == 200 and request_path.startswith("foo")'
+    
+        Analyze apache access log from remote machine using 'common' log format
+        $ ssh remote tail -f /var/log/apache2/access.log | ngxtop -f common
 
 Samples
 -------

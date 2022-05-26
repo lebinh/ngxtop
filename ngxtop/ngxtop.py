@@ -14,7 +14,7 @@ Options:
                      Use this flag to tell ngxtop to process the current content of the access log instead.
     -t <seconds>, --interval <seconds>  report interval when running in follow mode [default: 2.0]
 
-    -g <varlist>, --group-by <var>  group by variable [default: request_path,http_host,remote_addr]
+    -g <varlist>, --group-by <varlist>  group by variable [default: request_path,http_host,remote_addr]
     -w <var>, --having <expr>  having clause [default: 1]
     -o <var>, --order-by <var>  order of output for default query [default: count]
     -n <number>, --limit <number>  limit the number of records included in report for top command [default: 10]
