@@ -83,7 +83,10 @@ def get_log_formats(config):
 
     for directive in log_format.searchString(config).asList():
         name = directive[1]
-        format_string = ''.join(directive[2])
+        if directive[2][0].startswith('escape='):
+            format_string = ''.join(directive[2][1:])
+        else:
+            format_string = ''.join(directive[2])
         yield name, format_string
 
 

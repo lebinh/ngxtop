@@ -9,7 +9,7 @@ Usage:
 Options:
     -l <file>, --access-log <file>  access log file to parse.
     -f <format>, --log-format <format>  log format as specify in log_format directive. [default: combined]
-    --no-follow  ngxtop default behavior is to ignore current lines in log
+    -b --no-follow  ngxtop default behavior is to ignore current lines in log
                      and only watch for new lines as they are written to the access log.
                      Use this flag to tell ngxtop to process the current content of the access log instead.
     -t <seconds>, --interval <seconds>  report interval when running in follow mode [default: 2.0]
@@ -17,7 +17,7 @@ Options:
     -g <var>, --group-by <var>  group by variable [default: request_path]
     -w <var>, --having <expr>  having clause [default: 1]
     -o <var>, --order-by <var>  order of output for default query [default: count]
-    -n <number>, --limit <number>  limit the number of records included in report for top command [default: 10]
+    -n <number>, --limit <number>  limit the number of records included in report for top command [default: 20]
     -a <exp> ..., --a <exp> ...  add exp (must be aggregation exp: sum, avg, min, max, etc.) into output
 
     -v, --verbose  more verbose output
@@ -34,8 +34,11 @@ Examples:
     All examples read nginx config file for access log location and format.
     If you want to specify the access log file and / or log format, use the -f and -a options.
 
-    "top" like view of nginx requests
-    $ ngxtop
+    "top" like dashboard of nginx requests
+    $ ngxtop            # add '-b/--no-follow' to just report once. (same as top -b)
+
+    same as above, but custom log stream and nginx.conf path,logformat
+    $ tail -n 1 /tmp/access.2022-05-26*.log -f | ngxtop -c /usr/local/nginx/nginx.conf -f main
 
     Top 10 requested path with status 404:
     $ ngxtop top request_path --filter 'status == 404'
@@ -54,6 +57,7 @@ Examples:
 
     Analyze apache access log from remote machine using 'common' log format
     $ ssh remote tail -f /var/log/apache2/access.log | ngxtop -f common
+
 """
 from __future__ import print_function
 import atexit
@@ -82,6 +86,7 @@ DEFAULT_QUERIES = [
     ('Summary:',
      '''SELECT
        count(1)                                    AS count,
+       avg(request_time)                           AS avg_request_time,
        avg(bytes_sent)                             AS avg_bytes_sent,
        count(CASE WHEN status_type = 2 THEN 1 END) AS '2xx',
        count(CASE WHEN status_type = 3 THEN 1 END) AS '3xx',
@@ -95,6 +100,7 @@ DEFAULT_QUERIES = [
      '''SELECT
        %(--group-by)s,
        count(1)                                    AS count,
+       avg(request_time)                           AS avg_request_time,
        avg(bytes_sent)                             AS avg_bytes_sent,
        count(CASE WHEN status_type = 2 THEN 1 END) AS '2xx',
        count(CASE WHEN status_type = 3 THEN 1 END) AS '3xx',
@@ -107,7 +113,7 @@ DEFAULT_QUERIES = [
      LIMIT %(--limit)s''')
 ]
 
-DEFAULT_FIELDS = set(['status_type', 'bytes_sent'])
+DEFAULT_FIELDS = set(['status_type', 'request_time', 'bytes_sent'])
 
 
 # ======================
@@ -348,8 +354,11 @@ def process(arguments):
     if access_log is None and not sys.stdin.isatty():
         # assume logs can be fetched directly from stdin when piped
         access_log = 'stdin'
+    config_file = arguments['--config']
+    if config_file:
+        access_log_default, log_format = detect_log_config(arguments)
     if access_log is None:
-        access_log, log_format = detect_log_config(arguments)
+        access_log = access_log_default
 
     logging.info('access_log: %s', access_log)
     logging.info('log_format: %s', log_format)
