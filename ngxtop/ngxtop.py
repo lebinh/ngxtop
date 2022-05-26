@@ -226,7 +226,7 @@ class SQLProcessor(object):
         count,sumbyte = self.count()
         duration = time.time() - self.begin
         status = '%s\t\tduration: %.0f sec\nsum: %6d Req, %8.2f MB;\tspeed: %6.1f Req/sec, %6.2f KB/sec;'
-        output = [status % (time.strftime('%F %T'), duration, count, sumbyte/1024/1024, count/duration, sumbyte/1024/duration)]
+        output = [status % (time.strftime('%F %T'), duration, count, (sumbyte or 0)/1024/1024, count/duration, (sumbyte or 0)/1024/duration)]
         with closing(self.conn.cursor()) as cursor:
             for query in self.report_queries:
                 if isinstance(query, tuple):
