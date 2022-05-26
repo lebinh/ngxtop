@@ -9,12 +9,12 @@ Usage:
 Options:
     -l <file>, --access-log <file>  access log file to parse.
     -f <format>, --log-format <format>  log format as specify in log_format directive. [default: combined]
-    --no-follow  ngxtop default behavior is to ignore current lines in log
+    -b --no-follow  ngxtop default behavior is to ignore current lines in log
                      and only watch for new lines as they are written to the access log.
                      Use this flag to tell ngxtop to process the current content of the access log instead.
     -t <seconds>, --interval <seconds>  report interval when running in follow mode [default: 2.0]
 
-    -g <var>, --group-by <var>  group by variable [default: request_path]
+    -g <varlist>, --group-by <varlist>  group by variable [default: request_path,http_host,remote_addr]
     -w <var>, --having <expr>  having clause [default: 1]
     -o <var>, --order-by <var>  order of output for default query [default: count]
     -n <number>, --limit <number>  limit the number of records included in report for top command [default: 10]
@@ -34,8 +34,11 @@ Examples:
     All examples read nginx config file for access log location and format.
     If you want to specify the access log file and / or log format, use the -f and -a options.
 
-    "top" like view of nginx requests
-    $ ngxtop
+    "top" like dashboard of nginx requests
+    $ ngxtop            # add '-b/--no-follow' to just report once. (same as top -b)
+
+    same as above, but custom log stream and nginx.conf path,logformat
+    $ tail -n 1 /tmp/access.2022-05-26*.log -f | ngxtop -c /usr/local/nginx/nginx.conf -f main
 
     Top 10 requested path with status 404:
     $ ngxtop top request_path --filter 'status == 404'
@@ -82,6 +85,7 @@ DEFAULT_QUERIES = [
     ('Summary:',
      '''SELECT
        count(1)                                    AS count,
+       avg(request_time)                           AS avg_request_time,
        avg(bytes_sent)                             AS avg_bytes_sent,
        count(CASE WHEN status_type = 2 THEN 1 END) AS '2xx',
        count(CASE WHEN status_type = 3 THEN 1 END) AS '3xx',
@@ -95,6 +99,7 @@ DEFAULT_QUERIES = [
      '''SELECT
        %(--group-by)s,
        count(1)                                    AS count,
+       avg(request_time)                           AS avg_request_time,
        avg(bytes_sent)                             AS avg_bytes_sent,
        count(CASE WHEN status_type = 2 THEN 1 END) AS '2xx',
        count(CASE WHEN status_type = 3 THEN 1 END) AS '3xx',
@@ -107,7 +112,7 @@ DEFAULT_QUERIES = [
      LIMIT %(--limit)s''')
 ]
 
-DEFAULT_FIELDS = set(['status_type', 'bytes_sent'])
+DEFAULT_FIELDS = set(['status_type', 'request_time', 'bytes_sent'])
 
 
 # ======================
@@ -218,10 +223,10 @@ class SQLProcessor(object):
     def report(self):
         if not self.begin:
             return ''
-        count = self.count()
+        count,sumbyte = self.count()
         duration = time.time() - self.begin
-        status = 'running for %.0f seconds, %d records processed: %.2f req/sec'
-        output = [status % (duration, count, count / duration)]
+        status = '%s\t\tduration: %.0f sec\nsum: %6d Req, %8.2f MB;\tspeed: %6.1f Req/sec, %6.2f KB/sec;'
+        output = [status % (time.strftime('%F %T'), duration, count, (sumbyte or 0)/1024/1024, count/duration, (sumbyte or 0)/1024/duration)]
         with closing(self.conn.cursor()) as cursor:
             for query in self.report_queries:
                 if isinstance(query, tuple):
@@ -246,8 +251,8 @@ class SQLProcessor(object):
 
     def count(self):
         with closing(self.conn.cursor()) as cursor:
-            cursor.execute('select count(1) from log')
-            return cursor.fetchone()[0]
+            cursor.execute('select count(1),sum(bytes_sent) from log')
+            return tuple(cursor.fetchone())
 
 
 # ===============
@@ -296,8 +301,19 @@ def build_processor(arguments):
         report_queries = arguments['<query>']
         fields = arguments['<fields>']
     else:
-        report_queries = [(name, query % arguments) for name, query in DEFAULT_QUERIES]
-        fields = DEFAULT_FIELDS.union(set([arguments['--group-by']]))
+        # report_queries = [(name, query % arguments) for name, query in DEFAULT_QUERIES]
+        # fields = DEFAULT_FIELDS.union(set([arguments['--group-by']]))
+        report_queries = []
+        group_bys = [i.strip() for i in arguments['--group-by'].split(',')]
+        for name, query in DEFAULT_QUERIES:
+            if '--group-by' not in query:
+                report_queries.append((name, query % arguments))
+                continue
+            for group_by in group_bys:
+                _arguments = arguments.copy()
+                _arguments['--group-by'] = group_by
+                report_queries.append(('%s %s' % (group_by, name), query % _arguments))
+        fields = DEFAULT_FIELDS.union(set(group_bys))
 
     for label, query in report_queries:
         logging.info('query for "%s":\n %s', label, query)
@@ -348,8 +364,11 @@ def process(arguments):
     if access_log is None and not sys.stdin.isatty():
         # assume logs can be fetched directly from stdin when piped
         access_log = 'stdin'
+    config_file = arguments['--config']
+    if config_file:
+        access_log_default, log_format = detect_log_config(arguments)
     if access_log is None:
-        access_log, log_format = detect_log_config(arguments)
+        access_log = access_log_default
 
     logging.info('access_log: %s', access_log)
     logging.info('log_format: %s', log_format)
