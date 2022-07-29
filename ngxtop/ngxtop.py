@@ -73,7 +73,6 @@ except ImportError:
 
 from docopt import docopt
 import tabulate
-
 from .config_parser import detect_log_config, detect_config_path, extract_variables, build_pattern
 from .utils import error_exit
 
@@ -86,7 +85,9 @@ DEFAULT_QUERIES = [
        count(CASE WHEN status_type = 2 THEN 1 END) AS '2xx',
        count(CASE WHEN status_type = 3 THEN 1 END) AS '3xx',
        count(CASE WHEN status_type = 4 THEN 1 END) AS '4xx',
-       count(CASE WHEN status_type = 5 THEN 1 END) AS '5xx'
+       count(CASE WHEN status_type = 5 THEN 1 END) AS '5xx',
+       count(CASE WHEN cache_status = 1 THEN 1 END) as 'cached',
+       count(CASE WHEN cache_status = 0 THEN 1 END) as 'non cached'
      FROM log
      ORDER BY %(--order-by)s DESC
      LIMIT %(--limit)s'''),
@@ -99,7 +100,9 @@ DEFAULT_QUERIES = [
        count(CASE WHEN status_type = 2 THEN 1 END) AS '2xx',
        count(CASE WHEN status_type = 3 THEN 1 END) AS '3xx',
        count(CASE WHEN status_type = 4 THEN 1 END) AS '4xx',
-       count(CASE WHEN status_type = 5 THEN 1 END) AS '5xx'
+       count(CASE WHEN status_type = 5 THEN 1 END) AS '5xx',
+       count(CASE WHEN cache_status = 1 THEN 1 END) as 'cached',
+       count(CASE WHEN cache_status = 0 THEN 1 END) as 'non cached'
      FROM log
      GROUP BY %(--group-by)s
      HAVING %(--having)s
@@ -107,7 +110,7 @@ DEFAULT_QUERIES = [
      LIMIT %(--limit)s''')
 ]
 
-DEFAULT_FIELDS = set(['status_type', 'bytes_sent'])
+DEFAULT_FIELDS = set(['status_type', 'bytes_sent', 'cache_status'])
 
 
 # ======================
@@ -181,6 +184,12 @@ def to_int(value):
 def to_float(value):
     return float(value) if value and value != '-' else 0.0
 
+def hit_or_miss(record):
+    if(record["cache"].find("HIT") != -1):
+        return 1
+    else:
+        return 0
+
 
 def parse_log(lines, pattern):
     matches = (pattern.match(l) for l in lines)
@@ -191,6 +200,7 @@ def parse_log(lines, pattern):
     records = map_field('bytes_sent', to_int, records)
     records = map_field('request_time', to_float, records)
     records = add_field('request_path', parse_request_path, records)
+    records = add_field('cache_status', hit_or_miss, records)
     return records
 
 
@@ -342,7 +352,7 @@ def setup_reporter(processor, arguments):
     signal.setitimer(signal.ITIMER_REAL, 0.1, interval)
 
 
-def process(arguments):
+def process(arguments):    
     access_log = arguments['--access-log']
     log_format = arguments['--log-format']
     if access_log is None and not sys.stdin.isatty():
@@ -365,13 +375,15 @@ def process(arguments):
 
     source = build_source(access_log, arguments)
     pattern = build_pattern(log_format)
+    logging.debug("ducla")
+    logging.debug(pattern)
     processor = build_processor(arguments)
     setup_reporter(processor, arguments)
     process_log(source, pattern, processor, arguments)
 
 
 def main():
-    args = docopt(__doc__, version='xstat 0.1')
+    args = docopt(__doc__, version='xstat 0.3.1')
 
     log_level = logging.WARNING
     if args['--verbose']:
