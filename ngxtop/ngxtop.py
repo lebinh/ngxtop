@@ -254,9 +254,9 @@ class SQLProcessor(object):
 # Log processing
 # ===============
 def process_log(lines, pattern, processor, arguments):
-    pre_filer_exp = arguments['--pre-filter']
-    if pre_filer_exp:
-        lines = (line for line in lines if eval(pre_filer_exp, {}, dict(line=line)))
+    pre_filter_exp = arguments['--pre-filter']
+    if pre_filter_exp:
+        lines = (line for line in lines if eval(pre_filter_exp, {}, dict(line=line)))
 
     records = parse_log(lines, pattern)
 
